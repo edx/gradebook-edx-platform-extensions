@@ -1,1 +1,0 @@
-# gradebook-edx-platform-extensions
