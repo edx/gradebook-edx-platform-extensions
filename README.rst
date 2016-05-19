@@ -14,8 +14,8 @@ Open edX Platform Integration
 
 .. code-block:: bash
 
-'SIGNAL_ON_SCORE_CHANGED': True,
-'STUDENT_GRADEBOOK': True
+  'SIGNAL_ON_SCORE_CHANGED': True,
+  'STUDENT_GRADEBOOK': True
 
 4. Install gradebook app via requirements file
 
