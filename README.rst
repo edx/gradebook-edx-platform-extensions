@@ -1,7 +1,7 @@
-progress-edx-platform-extensions
+gradebook-edx-platform-extensions
 ===================
 
-progress-edx-platform-extensions (``gradebook``) is a Django application responsible for
+gradebook-edx-platform-extensions (``gradebook``) is a Django application responsible for
 calculating and persisting user's grade and proforma grade for a course.
 Gradebook application computes user's grades in a course on ``score_changed`` signal of courseware.
 
@@ -16,7 +16,7 @@ Open edX Platform Integration
 'SIGNAL_ON_SCORE_CHANGED': True,
 'STUDENT_GRADEBOOK': True
 
-4. Install progress app via requirements file
+4. Install gradebook app via requirements file
 
 .. code-block:: bash
   $ pip install -r requirements/edx/custom.txt
