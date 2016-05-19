@@ -9,16 +9,18 @@ Gradebook application computes user's grades in a course on ``score_changed`` si
 Open edX Platform Integration
 -----------------------------
 1. Update the version of ``gradebook-edx-platform-extensions`` in the appropriate requirements file (e.g. ``requirements/edx/custom.txt``).
-2. Add ‘gradebook’ to the list of installed apps in ``common.py``.
+2. Add ``gradebook`` to the list of installed apps in ``common.py``.
 3. Set these feature flag in ``common.py``
 
 .. code-block:: bash
+
 'SIGNAL_ON_SCORE_CHANGED': True,
 'STUDENT_GRADEBOOK': True
 
 4. Install gradebook app via requirements file
 
 .. code-block:: bash
+
   $ pip install -r requirements/edx/custom.txt
 
 5. (Optional) Run tests to make sure gradebook app is integrated:
