@@ -79,23 +79,23 @@ class StudentGradebook(models.Model):
             # Generate the base data set we're going to work with
             queryset = StudentGradebook.objects.select_related('user')\
                 .filter(course_id__exact=course_key, user__is_active=True, user__courseenrollment__is_active=True,
-                        user__courseenrollment__course_id__exact=course_key,
-                        user__in=enrolled_users_not_excluded)
+                        user__courseenrollment__course_id__exact=course_key).exclude(user__id__in=exclude_users)
 
-            gradebook_user_count = len(queryset)
+            aggregates = queryset.aggregate(Avg('grade'), Max('grade'), Min('grade'), Count('user'))
+            gradebook_user_count = aggregates['user__count']
 
             if gradebook_user_count:
                 # Calculate the class average
-                course_avg = queryset.aggregate(Avg('grade'))['grade__avg']
+                course_avg = aggregates['grade__avg']
                 if course_avg is not None:
                     # Take into account any ungraded students (assumes zeros for grades...)
                     course_avg = course_avg / total_user_count * gradebook_user_count
 
                     # Fill up the response container
                     data['course_avg'] = float("{0:.3f}".format(course_avg))
-                    data['course_max'] = queryset.aggregate(Max('grade'))['grade__max']
-                    data['course_min'] = queryset.aggregate(Min('grade'))['grade__min']
-                    data['course_count'] = queryset.aggregate(Count('grade'))['grade__count']
+                    data['course_max'] = aggregates['grade__max']
+                    data['course_min'] = aggregates['grade__min']
+                    data['course_count'] = gradebook_user_count
 
                 if group_ids:
                     queryset = queryset.filter(user__groups__in=group_ids).distinct()
@@ -114,16 +114,14 @@ class StudentGradebook(models.Model):
                     result = cls.get_user_position(
                         course_key,
                         user_id,
-                        queryset=queryset,
                         exclude_users=exclude_users
                     )
-                    print 'result = {}'.format(result)
                     data.update(result)
 
         return data
 
     @classmethod
-    def get_user_position(cls, course_key, user_id, queryset=None, exclude_users=None):
+    def get_user_position(cls, course_key, user_id, exclude_users=None):
         """
         Helper method to return the user's position in the leaderboard for Proficiency
         """
@@ -141,16 +139,14 @@ class StudentGradebook(models.Model):
             user_grade = user_queryset.grade
             user_time_scored = user_queryset.created
 
-        # if we were not passed in an existing queryset, build it up
-        if not queryset:
-            queryset = StudentGradebook.objects.select_related('user').filter(
-                course_id__exact=course_key,
-                user__is_active=True,
-                user__courseenrollment__is_active=True,
-                user__courseenrollment__course_id__exact=course_key
-            ).exclude(
-                user__in=exclude_users
-            )
+        queryset = StudentGradebook.objects.select_related('user').filter(
+            course_id__exact=course_key,
+            user__is_active=True,
+            user__courseenrollment__is_active=True,
+            user__courseenrollment__course_id__exact=course_key
+        ).exclude(
+            user__in=exclude_users
+        )
 
         users_above = queryset.filter(grade__gte=user_grade)\
             .exclude(user__id=user_id)\
