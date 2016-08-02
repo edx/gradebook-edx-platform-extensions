@@ -1,4 +1,4 @@
 """
 Initialization module for gradebook djangoapp
 """
-import gradebook.signals
+default_app_config = 'gradebook.apps.SolutionsAppGradebookConfig'

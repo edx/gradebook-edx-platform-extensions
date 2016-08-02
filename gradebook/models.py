@@ -32,7 +32,7 @@ class StudentGradebook(models.Model):
     created = AutoCreatedField(_('created'), db_index=True)
     modified = AutoLastModifiedField(_('modified'), db_index=True)
 
-    class Meta:
+    class Meta(object):
         """
         Meta information for this Django model
         """
