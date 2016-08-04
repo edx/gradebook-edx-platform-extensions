@@ -3,9 +3,8 @@ One-time data migration script -- shouldn't need to run it again
 """
 import json
 import logging
-from optparse import make_option
 
-from django.core.management.base import BaseCommand
+from django.core.management import BaseCommand
 
 from courseware import grades
 from gradebook.models import StudentGradebook
@@ -22,24 +21,27 @@ class Command(BaseCommand):
     Creates (or updates) gradebook entries for the specified course(s) and/or user(s)
     """
 
+    def add_arguments(self, parser):
+        parser.add_argument(
+            '--course_ids',
+            action='store',
+            dest='course_ids',
+            type=str,
+            help='List of courses for which to generate grades.',
+            metavar="first/course/id,second/course/id"
+        )
+
+        parser.add_argument(
+            '--user_ids',
+            action='store',
+            dest='user_ids',
+            type=str,
+            help='List of users for which to generate grades.',
+            metavar="1234,2468,3579"
+        )
+
     def handle(self, *args, **options):
         help = "Command to create or update gradebook entries"
-        option_list = BaseCommand.option_list + (
-            make_option(
-                "-c",
-                "--course_ids",
-                dest="course_ids",
-                help="List of courses for which to generate grades",
-                metavar="first/course/id,second/course/id"
-            ),
-            make_option(
-                "-u",
-                "--user_ids",
-                dest="user_ids",
-                help="List of users for which to generate grades",
-                metavar="1234,2468,3579"
-            ),
-        )
 
         course_ids = options.get('course_ids')
         user_ids = options.get('user_ids')
