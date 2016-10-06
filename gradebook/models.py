@@ -26,8 +26,8 @@ class StudentGradebook(models.Model):
     grade = models.FloatField(db_index=True)
     proforma_grade = models.FloatField()
     progress_summary = models.TextField(blank=True)
-    grade_summary = models.TextField(blank=True)
-    grading_policy = models.TextField(blank=True)
+    grade_summary = models.TextField()
+    grading_policy = models.TextField()
     # We can't use TimeStampedModel here because those fields are not indexed.
     created = AutoCreatedField(_('created'), db_index=True)
     modified = AutoLastModifiedField(_('modified'), db_index=True)
@@ -193,8 +193,8 @@ class StudentGradebookHistory(TimeStampedModel):
     grade = models.FloatField()
     proforma_grade = models.FloatField()
     progress_summary = models.TextField(blank=True)
-    grade_summary = models.TextField(blank=True)
-    grading_policy = models.TextField(blank=True)
+    grade_summary = models.TextField()
+    grading_policy = models.TextField()
 
     @receiver(post_save, sender=StudentGradebook)
     def save_history(sender, instance, **kwargs):  # pylint: disable=no-self-argument, unused-argument
