@@ -28,23 +28,21 @@ def generate_user_gradebook(course_key, user):
         grade = grade_summary['percent']
         proforma_grade = grades.calculate_proforma_grade(grade_summary, grading_policy)
 
-    try:
-        gradebook_entry = StudentGradebook.objects.get(user=user, course_id=course_key)
-        if gradebook_entry.grade != grade:
-            gradebook_entry.grade = grade
-            gradebook_entry.proforma_grade = proforma_grade
-            gradebook_entry.progress_summary = json.dumps(progress_summary, cls=EdxJSONEncoder)
-            gradebook_entry.grade_summary = json.dumps(grade_summary, cls=EdxJSONEncoder)
-            gradebook_entry.grading_policy = json.dumps(grading_policy, cls=EdxJSONEncoder)
-            gradebook_entry.save()
-    except StudentGradebook.DoesNotExist:
-        gradebook_entry = StudentGradebook.objects.create(
-            user=user,
-            course_id=course_key,
-            grade=grade,
-            proforma_grade=proforma_grade,
-            progress_summary=json.dumps(progress_summary, cls=EdxJSONEncoder),
-            grade_summary=json.dumps(grade_summary, cls=EdxJSONEncoder),
-            grading_policy=json.dumps(grading_policy, cls=EdxJSONEncoder)
-        )
+    gradebook_entry, created = StudentGradebook.objects.get_or_create(user=user, course_id=course_key,
+                                                                      defaults={'grade': grade,
+                                                                                'proforma_grade': proforma_grade,
+                                                                                'progress_summary': json.dumps
+                                                                                (progress_summary, cls=EdxJSONEncoder),
+                                                                                'grade_summary': json.dumps
+                                                                                (grade_summary, cls=EdxJSONEncoder),
+                                                                                'grading_policy': json.dumps
+                                                                                (grading_policy, cls=EdxJSONEncoder)})
+    if gradebook_entry.grade != grade:
+        gradebook_entry.grade = grade
+        gradebook_entry.proforma_grade = proforma_grade
+        gradebook_entry.progress_summary = json.dumps(progress_summary, cls=EdxJSONEncoder)
+        gradebook_entry.grade_summary = json.dumps(grade_summary, cls=EdxJSONEncoder)
+        gradebook_entry.grading_policy = json.dumps(grading_policy, cls=EdxJSONEncoder)
+        gradebook_entry.save()
+
     return gradebook_entry
