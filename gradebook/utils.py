@@ -22,9 +22,9 @@ def generate_user_gradebook(course_key, user):
     with modulestore().bulk_operations(course_key):
         course_descriptor = get_course(course_key, depth=None)
         course_structure = get_course_blocks(user, course_descriptor.location)
-        progress_summary = grades.progress_summary(user, course_descriptor, course_structure)
         grade_summary = grades.grade(user, course_descriptor, course_structure)
         grading_policy = course_descriptor.grading_policy
+        progress_summary = grades.progress_summary(user, course_descriptor, course_structure)
         grade = grade_summary['percent']
         proforma_grade = grades.calculate_proforma_grade(grade_summary, grading_policy)
 
