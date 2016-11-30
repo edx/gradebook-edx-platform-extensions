@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Avg, Max, Min, Count, F
+from django.db.models import Avg, Max, Min, Count, F, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
@@ -72,8 +72,7 @@ class StudentGradebook(models.Model):
         data['course_count'] = 0
         data['queryset'] = []
 
-        enrolled_users_not_excluded = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users)
-        total_user_count = enrolled_users_not_excluded.count()
+        total_user_count = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users).count()
 
         if total_user_count:
             # Generate the base data set we're going to work with
@@ -152,11 +151,12 @@ class StudentGradebook(models.Model):
         if group_ids:
             queryset = queryset.filter(user__groups__in=group_ids).distinct()
 
-        users_above = queryset.filter(grade__gte=user_grade)\
-            .exclude(user__id=user_id)\
-            .exclude(grade=user_grade, modified__gt=user_time_scored)
+        users_above = queryset.filter(
+            Q(grade__gt=user_grade) |
+            Q(grade=user_grade, modified__lt=user_time_scored)
+        ).count()
 
-        data['user_position'] = len(users_above) + 1
+        data['user_position'] = users_above + 1
         data['user_grade'] = user_grade
 
         return data
