@@ -3,7 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import migrations, models
 import model_utils.fields
-import xmodule_django.models
+from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
 import django.utils.timezone
 from django.conf import settings
 
@@ -19,7 +19,7 @@ class Migration(migrations.Migration):
             name='StudentGradebook',
             fields=[
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
-                ('course_id', xmodule_django.models.CourseKeyField(db_index=True, max_length=255, blank=True)),
+                ('course_id', CourseKeyField(db_index=True, max_length=255, blank=True)),
                 ('grade', models.FloatField(db_index=True)),
                 ('proforma_grade', models.FloatField()),
                 ('progress_summary', models.TextField(blank=True)),
@@ -36,7 +36,7 @@ class Migration(migrations.Migration):
                 ('id', models.AutoField(verbose_name='ID', serialize=False, auto_created=True, primary_key=True)),
                 ('created', model_utils.fields.AutoCreatedField(default=django.utils.timezone.now, verbose_name='created', editable=False)),
                 ('modified', model_utils.fields.AutoLastModifiedField(default=django.utils.timezone.now, verbose_name='modified', editable=False)),
-                ('course_id', xmodule_django.models.CourseKeyField(db_index=True, max_length=255, blank=True)),
+                ('course_id', CourseKeyField(db_index=True, max_length=255, blank=True)),
                 ('grade', models.FloatField()),
                 ('proforma_grade', models.FloatField()),
                 ('progress_summary', models.TextField(blank=True)),
