@@ -8,7 +8,7 @@ from django.dispatch import receiver
 from django.conf import settings
 from django.db.models.signals import post_save, pre_save
 
-from courseware.signals import score_changed
+from openedx.core.djangoapps.signals.signals import COURSE_GRADE_CHANGED
 from util.signals import course_deleted
 from student.roles import get_aggregate_exclusion_user_ids
 from edx_notifications.lib.publisher import (
@@ -25,13 +25,13 @@ from gradebook.tasks import update_user_gradebook
 log = logging.getLogger(__name__)
 
 
-@receiver(score_changed, dispatch_uid="lms.courseware.score_changed")
-def on_score_changed(sender, **kwargs):
+@receiver(COURSE_GRADE_CHANGED)
+def on_course_grade_changed(sender, user, course_grade, course_key, deadline, **kwargs):  # pylint: disable=unused-argument
     """
-    Listens for a 'score_changed' signal invoke grade book update task
+    Listens for a 'COURSE_GRADE_CHANGED' signal invoke grade book update task
     """
-    user_id = kwargs['user'].id
-    course_key = unicode(kwargs['course_key'])
+    user_id = user.id
+    course_key = unicode(course_key)
     update_user_gradebook.delay(course_key, user_id)
 
 

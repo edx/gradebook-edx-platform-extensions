@@ -60,30 +60,28 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
             "detail": "Midterm Exam = 50.00% of a possible 50.00%",
         }
 
-    def _get_homework_summary(self, assignment):
+    def _get_homework_summary(self, course, attempted=False):
         return {
             u'url_name': u'Sequence_2',
             u'display_name': u'Sequence 2',
+            u'location': 'i4x://{org}/{num}/sequential/Sequence_2'.format(org=course.org, num=course.number),
             u'graded': True,
             u'format': u'Homework',
-            u'section_total': [0.5, 1.0, False, u'Sequence 2', None, None],
             u'due': None,
-            u'scores': [
-                [0.5, 1.0, True, u'test mentoring homework', unicode(assignment.location), None]
-            ]
+            u'section_total': [0.5, 1.0, False, attempted],
+            u'graded_total': [0.5, 1.0, True, attempted]
         }
 
-    def _get_midterm_summary(self, assignment):
+    def _get_midterm_summary(self, course, attempted=False):
         return {
             u'url_name': u'Sequence_3',
             u'display_name': u'Sequence 3',
+            u'location': 'i4x://{org}/{num}/sequential/Sequence_3'.format(org=course.org, num=course.number),
             u'graded': True,
             u'format': u'Midterm Exam',
-            u'section_total': [1.0, 1.0, False, u'Sequence 3', None, None],
             u'due': None,
-            u'scores': [
-                [1.0, 1.0, True, u'test mentoring midterm', unicode(assignment.location), None]
-            ]
+            u'section_total': [1.0, 1.0, False, attempted],
+            u'graded_total': [1.0, 1.0, True, attempted]
         }
 
     def _assert_valid_gradebook_on_course(self, course):
@@ -98,7 +96,10 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         self.assertEqual(gradebook.grade, 0.25)
         self.assertEqual(gradebook.proforma_grade, 0.5)
 
-        self.assertIn(json.dumps(self._get_homework_summary(course.homework_assignment)), gradebook.progress_summary)
+        self.assertIn(
+            json.dumps(self._get_homework_summary(course, attempted=True)),
+            gradebook.progress_summary
+        )
         self.assertIn(json.dumps(self._get_homework_grade_summary()), gradebook.grade_summary)
         self.assertEquals(json.loads(gradebook.grading_policy), course.grading_policy)
 
@@ -109,7 +110,10 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         gradebook = StudentGradebook.objects.get(user=self.user, course_id=course.id)
         self.assertEqual(gradebook.grade, 0.75)
         self.assertEqual(gradebook.proforma_grade, 0.75)
-        self.assertIn(json.dumps(self._get_midterm_summary(course.midterm_assignment)), gradebook.progress_summary)
+        self.assertIn(
+            json.dumps(self._get_midterm_summary(course, attempted=True)),
+            gradebook.progress_summary
+        )
         self.assertIn(json.dumps(self._get_midterm_grade_summary()), gradebook.grade_summary)
         self.assertEquals(json.loads(gradebook.grading_policy), course.grading_policy)
 
