@@ -3,9 +3,7 @@ Utils methods for gradebook app
 """
 import json
 
-from django.db import transaction
 from django.utils import timezone
-from django.utils.decorators import method_decorator
 
 from xmodule.modulestore import EdxJSONEncoder
 from xmodule.modulestore.django import modulestore
@@ -15,7 +13,6 @@ from courseware.courses import get_course
 from gradebook.models import StudentGradebook
 
 
-@method_decorator(transaction.non_atomic_requests)
 def generate_user_gradebook(course_key, user):
     """
     Recalculates the specified user's gradebook entry
@@ -57,7 +54,7 @@ def generate_user_gradebook(course_key, user):
 
 def get_json_data(obj):
     try:
-        json_data = json.dumps(obj, cls=GradeJSONEncoder)
+        json_data = json.dumps(obj, cls=EdxJSONEncoder)
     except:
         json_data = {}
     return json_data
@@ -98,20 +95,6 @@ def make_courseware_summary(chapter_grades):
             'sections': sub_sections,
         })
     return courseware_summary
-
-
-class GradeJSONEncoder(EdxJSONEncoder):
-    """
-    Custom JSONEncoder that handles `Location` and `datetime.datetime` objects.
-
-    `Location`s are encoded as their url string form, and `datetime`s as
-    ISO date strings
-    """
-    def default(self, obj):
-        if isinstance(obj, SubsectionGrade):
-            return obj.dict()
-        else:
-            return super(EdxJSONEncoder, self).default(obj)
 
 
 def calculate_proforma_grade(course_grade, grading_policy):
