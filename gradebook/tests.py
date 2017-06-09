@@ -11,7 +11,6 @@ from django.utils.timezone import UTC
 from django.conf import settings
 from django.test.utils import override_settings
 
-from xmodule.modulestore.tests.django_utils import ModuleStoreTestCase, mixed_store_config
 from student.tests.factories import UserFactory, AdminFactory
 from courseware.tests.factories import StaffFactory
 
@@ -25,14 +24,16 @@ from edx_solutions_api_integration.test_utils import (
     SignalDisconnectTestMixin,
     make_non_atomic,
 )
+from xmodule.modulestore.tests.django_utils import (
+    ModuleStoreTestCase,
+    TEST_DATA_SPLIT_MODULESTORE
+)
 
 
-MODULESTORE_CONFIG = mixed_store_config(settings.COMMON_TEST_DATA_ROOT, {})
-
-
-@override_settings(MODULESTORE=MODULESTORE_CONFIG)
 class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreTestCase):
     """ Test suite for Student Gradebook """
+
+    MODULESTORE = TEST_DATA_SPLIT_MODULESTORE
 
     def setUp(self):
         super(GradebookTests, self).setUp()
@@ -64,7 +65,11 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         return {
             u'url_name': u'Sequence_2',
             u'display_name': u'Sequence 2',
-            u'location': 'i4x://{org}/{num}/sequential/Sequence_2'.format(org=course.org, num=course.number),
+            u'location': 'block-v1:{org}+{num}+{run}+type@sequential+block@Sequence_2'.format(
+                org=course.org,
+                num=course.number,
+                run=course.id.run,
+            ),
             u'graded': True,
             u'format': u'Homework',
             u'due': None,
@@ -76,7 +81,11 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         return {
             u'url_name': u'Sequence_3',
             u'display_name': u'Sequence 3',
-            u'location': 'i4x://{org}/{num}/sequential/Sequence_3'.format(org=course.org, num=course.number),
+            u'location': 'block-v1:{org}+{num}+{run}+type@sequential+block@Sequence_3'.format(
+                org=course.org,
+                num=course.number,
+                run=course.id.run,
+            ),
             u'graded': True,
             u'format': u'Midterm Exam',
             u'due': None,
