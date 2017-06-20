@@ -285,3 +285,30 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
 
         history = StudentGradebookHistory.objects.all()
         self.assertEqual(len(history), 0)
+
+    def test_course_passed(self):
+        course = self.setup_course_with_grading()
+        course2 = self.setup_course_with_grading()
+
+        module = self.get_module_for_user(self.user, course, course.homework_assignment)
+        grade_dict = {'value': 0.5, 'max_value': 1, 'user_id': self.user.id}
+        module.system.publish(module, 'grade', grade_dict)
+
+        gradebook = StudentGradebook.objects.filter(is_passed=True)
+        self.assertEqual(len(gradebook), 0)
+
+        history = StudentGradebookHistory.objects.filter(is_passed=True)
+        self.assertEqual(len(history), 0)
+
+        module = self.get_module_for_user(self.user, course2, course2.midterm_assignment)
+        grade_dict = {'value': 1, 'max_value': 1, 'user_id': self.user.id}
+        module.system.publish(module, 'grade', grade_dict)
+
+        gradebook = StudentGradebook.objects.filter(is_passed=True)
+        self.assertEqual(len(gradebook), 1)
+
+        gradebook = StudentGradebook.objects.filter(is_passed=True, user=self.user)
+        self.assertEqual(len(gradebook), 1)
+
+        history = StudentGradebookHistory.objects.filter(is_passed=True)
+        self.assertEqual(len(history), 1)
