@@ -22,6 +22,7 @@ def generate_user_gradebook(course_key, user):
         course_descriptor = get_course(course_key, depth=None)
         course_grade = CourseGradeFactory().create(user, course_descriptor)
         grade_summary = course_grade.summary
+        is_passed = course_grade.passed
         progress_summary = make_courseware_summary(course_grade.chapter_grades)
         grading_policy = course_descriptor.grading_policy
         grade = grade_summary['percent']
@@ -38,7 +39,8 @@ def generate_user_gradebook(course_key, user):
             'proforma_grade': proforma_grade,
             'progress_summary': progress_summary,
             'grade_summary': grade_summary,
-            'grading_policy': grading_policy
+            'grading_policy': grading_policy,
+            'is_passed': is_passed,
         }
     )
     if created:
@@ -50,6 +52,7 @@ def generate_user_gradebook(course_key, user):
         gradebook_entry.progress_summary = progress_summary
         gradebook_entry.grade_summary = grade_summary
         gradebook_entry.grading_policy = grading_policy
+        gradebook_entry.is_passed = is_passed
         gradebook_entry.save()
         log.warning("Updated gradebook for user %s in course %s with grade %s", user.id, course_key, grade)
 

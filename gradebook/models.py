@@ -28,6 +28,7 @@ class StudentGradebook(models.Model):
     progress_summary = models.TextField(blank=True)
     grade_summary = models.TextField()
     grading_policy = models.TextField()
+    is_passed = models.BooleanField(db_index=True, default=False)
     # We can't use TimeStampedModel here because those fields are not indexed.
     created = AutoCreatedField(_('created'), db_index=True)
     modified = AutoLastModifiedField(_('modified'), db_index=True)
@@ -182,6 +183,25 @@ class StudentGradebook(models.Model):
 
         return queryset.distinct().count()
 
+    @classmethod
+    def get_passed_users(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
+        """
+        Returns ids of users those who passed given course.
+        """
+        queryset = cls.objects.filter(
+            course_id__exact=course_key,
+            user__is_active=True,
+            user__courseenrollment__is_active=True,
+            user__courseenrollment__course_id__exact=course_key,
+            is_passed=True
+        ).exclude(user__id__in=exclude_users)
+        if org_ids:
+            queryset = queryset.filter(user__organizations__in=org_ids)
+        if group_ids:
+            queryset = queryset.filter(user__groups__in=group_ids)
+
+        return queryset.values_list("user_id", flat=True)
+
 
 class StudentGradebookHistory(TimeStampedModel):
     """
@@ -195,6 +215,7 @@ class StudentGradebookHistory(TimeStampedModel):
     progress_summary = models.TextField(blank=True)
     grade_summary = models.TextField()
     grading_policy = models.TextField()
+    is_passed = models.BooleanField(db_index=True, default=False)
 
     @receiver(post_save, sender=StudentGradebook)
     def save_history(sender, instance, **kwargs):  # pylint: disable=no-self-argument, unused-argument
@@ -213,7 +234,8 @@ class StudentGradebookHistory(TimeStampedModel):
                 latest_history_entry.proforma_grade != instance.proforma_grade or
                 latest_history_entry.progress_summary != instance.progress_summary or
                 latest_history_entry.grade_summary != instance.grade_summary or
-                latest_history_entry.grading_policy != instance.grading_policy
+                latest_history_entry.grading_policy != instance.grading_policy or
+                latest_history_entry.is_passed != instance.is_passed
             ):
                 create_history_entry = True
         else:
@@ -227,6 +249,7 @@ class StudentGradebookHistory(TimeStampedModel):
                 proforma_grade=instance.proforma_grade,
                 progress_summary=instance.progress_summary,
                 grade_summary=instance.grade_summary,
-                grading_policy=instance.grading_policy
+                grading_policy=instance.grading_policy,
+                is_passed=instance.is_passed
             )
             new_history_entry.save()
