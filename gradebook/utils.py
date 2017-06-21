@@ -46,7 +46,7 @@ def generate_user_gradebook(course_key, user):
     if created:
         log.warning("Created gradebook for user %s in course %s with grade %s", user.id, course_key, grade)
 
-    if gradebook_entry.grade != grade:
+    if gradebook_entry.grade != grade or gradebook_entry.is_passed != is_passed:
         gradebook_entry.grade = grade
         gradebook_entry.proforma_grade = proforma_grade
         gradebook_entry.progress_summary = progress_summary

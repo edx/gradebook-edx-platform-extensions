@@ -1,25 +1,26 @@
 """
-Command to regrade users in a course
-./manage.py lms regrade_course -c {course_id} --settings=aws
+Command to update pass status of users in a course
+./manage.py lms update_pass_status -c {course_id} --settings=aws
 """
 import logging
 from optparse import make_option
 
 from django.core.management import BaseCommand
 
-from gradebook.utils import generate_user_gradebook
+from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
 from student.models import CourseEnrollment
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import CourseKey
+from gradebook.models import StudentGradebook
 
 log = logging.getLogger(__name__)
 
 
 class Command(BaseCommand):
     """
-    Updates gradebook entries for the specified course
+    Updates gradebook entries with pass status of user in the specified course
     """
-    help = "Command to regrade users in a course"
+    help = "Command to update pass status of users in a course"
 
     option_list = BaseCommand.option_list + (
         make_option(
@@ -35,7 +36,7 @@ class Command(BaseCommand):
 
         course_id = options.get('course_id')
 
-        users_regraded = 0
+        users_updated = 0
 
         course_key = CourseKey.from_string(course_id)
         users = CourseEnrollment.objects.users_enrolled_in(course_key)
@@ -44,19 +45,22 @@ class Command(BaseCommand):
         if course:
             # For each user...
             for user in users:
+                is_passed = False
                 try:
-                    gradebook = generate_user_gradebook(course_key, user)
-                except Exception as ex:   # pylint: disable=broad-except
+                    course_grade = CourseGradeFactory().create(user, course)
+                    is_passed = course_grade.passed
+                    StudentGradebook.objects.filter(user=user, course_id=course_key).update(is_passed=is_passed)
+                except Exception as ex:  # pylint: disable=broad-except
                     log.info(
-                        "Failed to update gradeboo for user %s in course %s. Error: %s",
+                        "Failed to update pass status for user %s in course %s. Error: %s",
                         user.id, course_key, ex.message
                     )
 
-                users_regraded += 1
+                users_updated += 1
                 log.info(
-                    "Gradebook entry updated in Course %s for User id %s with grade: %s, proforma_grade: %s ",
-                    course.id, user.id, gradebook.grade, gradebook.proforma_grade
+                    "Gradebook entry updated in Course %s for User id %s with pass status: %s",
+                    course.id, user.id, is_passed
                 )
         else:
             log.info("Course with course id %s does not exist", course_id)
-        log.info("%d users regraded", users_regraded)
+        log.info("%d users have their pass status updated", users_updated)
