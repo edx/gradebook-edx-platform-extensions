@@ -186,21 +186,21 @@ class StudentGradebook(models.Model):
     @classmethod
     def get_passed_users(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
         """
-        Returns ids of users those who passed given course.
+        Return users who passed given course.
         """
-        queryset = cls.objects.filter(
-            course_id__exact=course_key,
-            user__is_active=True,
-            user__courseenrollment__is_active=True,
-            user__courseenrollment__course_id__exact=course_key,
-            is_passed=True
-        ).exclude(user__id__in=exclude_users)
+        queryset = User.objects.filter(
+            studentgradebook__course_id__exact=course_key,
+            is_active=True,
+            courseenrollment__is_active=True,
+            courseenrollment__course_id__exact=course_key,
+            studentgradebook__is_passed=True
+        ).exclude(id__in=exclude_users)
         if org_ids:
-            queryset = queryset.filter(user__organizations__in=org_ids)
+            queryset = queryset.filter(organizations__in=org_ids)
         if group_ids:
-            queryset = queryset.filter(user__groups__in=group_ids)
+            queryset = queryset.filter(groups__in=group_ids)
 
-        return queryset.values_list("user_id", flat=True)
+        return queryset
 
 
 class StudentGradebookHistory(TimeStampedModel):
