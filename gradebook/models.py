@@ -163,6 +163,45 @@ class StudentGradebook(models.Model):
         return data
 
     @classmethod
+    def course_grade_avg(cls, course_key, exclude_users=None):
+        """
+        Returns course grade average
+        """
+        course_avg = 0.0
+        exclude_users = exclude_users or []
+        total_user_count = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users).count()
+
+        if total_user_count:
+            # Generate the base data set we're going to work with
+            queryset = StudentGradebook.objects.select_related('user')\
+                .filter(course_id__exact=course_key, user__is_active=True, user__courseenrollment__is_active=True,
+                        user__courseenrollment__course_id__exact=course_key).exclude(user__id__in=exclude_users)
+
+            aggregates = queryset.aggregate(Avg('grade'), Count('user'))
+            gradebook_user_count = aggregates['user__count']
+
+            if gradebook_user_count:
+                # Calculate the class average
+                course_avg = aggregates['grade__avg']
+                if course_avg is not None:
+                    # Take into account any ungraded students (assumes zeros for grades...)
+                    course_avg = course_avg / total_user_count * gradebook_user_count
+                    course_avg = float("{0:.3f}".format(course_avg))
+        return course_avg
+
+    @classmethod
+    def get_user_grade(cls, course_key, user_id):
+        """
+        returns the user's grade
+        """
+        user_grade = 0.0
+        try:
+            user_queryset = StudentGradebook.objects.get(course_id__exact=course_key, user__id=user_id)
+            return user_queryset.grade
+        except StudentGradebook.DoesNotExist:
+            return user_grade
+
+    @classmethod
     def get_num_users_completed(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
         """
         Returns count of users those who completed given course.

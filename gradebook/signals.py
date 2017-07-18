@@ -10,13 +10,14 @@ from django.db.models.signals import post_save, pre_save
 
 from lms.djangoapps.grades.signals.signals import PROBLEM_WEIGHTED_SCORE_CHANGED
 from util.signals import course_deleted
-from student.roles import get_aggregate_exclusion_user_ids
 from edx_notifications.lib.publisher import (
     publish_notification_to_user,
     get_notification_type
 )
 from edx_notifications.data import NotificationMessage
-
+from edx_solutions_api_integration.utils import (
+    get_aggregate_exclusion_user_ids,
+)
 
 from gradebook.models import StudentGradebook, StudentGradebookHistory
 from gradebook.tasks import update_user_gradebook
