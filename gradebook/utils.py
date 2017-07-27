@@ -8,6 +8,9 @@ from xmodule.modulestore import EdxJSONEncoder
 from xmodule.modulestore.django import modulestore
 from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
 from courseware.courses import get_course
+from edx_solutions_api_integration.utils import (
+    invalid_user_data_cache,
+)
 from gradebook.models import StudentGradebook
 
 
@@ -43,8 +46,6 @@ def generate_user_gradebook(course_key, user):
             'is_passed': is_passed,
         }
     )
-    if created:
-        log.warning("Created gradebook for user %s in course %s with grade %s", user.id, course_key, grade)
 
     if gradebook_entry.grade != grade or gradebook_entry.is_passed != is_passed:
         gradebook_entry.grade = grade
@@ -54,7 +55,7 @@ def generate_user_gradebook(course_key, user):
         gradebook_entry.grading_policy = grading_policy
         gradebook_entry.is_passed = is_passed
         gradebook_entry.save()
-        log.warning("Updated gradebook for user %s in course %s with grade %s", user.id, course_key, grade)
+        invalid_user_data_cache('grade', course_key, user.id)
 
     return gradebook_entry
 
