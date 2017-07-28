@@ -223,21 +223,21 @@ class StudentGradebook(models.Model):
         return queryset.distinct().count()
 
     @classmethod
-    def get_passed_users(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
+    def get_passed_users_gradebook(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
         """
-        Return users who passed given course.
+        Return users gradebook who passed given course.
         """
-        queryset = User.objects.filter(
-            studentgradebook__course_id__exact=course_key,
-            is_active=True,
-            courseenrollment__is_active=True,
-            courseenrollment__course_id__exact=course_key,
-            studentgradebook__is_passed=True
+        queryset = StudentGradebook.objects.select_related('user').filter(
+            course_id__exact=course_key,
+            user__is_active=True,
+            user__courseenrollment__is_active=True,
+            user__courseenrollment__course_id__exact=course_key,
+            is_passed=True
         ).exclude(id__in=exclude_users)
         if org_ids:
-            queryset = queryset.filter(organizations__in=org_ids)
+            queryset = queryset.filter(user__organizations__in=org_ids)
         if group_ids:
-            queryset = queryset.filter(groups__in=group_ids)
+            queryset = queryset.filter(user__groups__in=group_ids)
 
         return queryset
 
