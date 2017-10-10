@@ -71,10 +71,11 @@ class StudentGradebook(models.Model):
         data['course_max'] = 0
         data['course_min'] = 0
         data['course_count'] = 0
+        data['enrollment_count'] = 0
         data['queryset'] = []
 
         total_user_count = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users).count()
-
+        data['enrollment_count'] = total_user_count
         if total_user_count:
             # Generate the base data set we're going to work with
             queryset = StudentGradebook.objects.select_related('user')\
