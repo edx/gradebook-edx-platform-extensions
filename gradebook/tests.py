@@ -9,9 +9,8 @@ from datetime import datetime
 
 from django.utils.timezone import UTC
 from django.conf import settings
-from django.test.utils import override_settings
 
-from student.tests.factories import UserFactory, AdminFactory
+from student.tests.factories import UserFactory, AdminFactory, CourseEnrollmentFactory
 from courseware.tests.factories import StaffFactory
 
 from gradebook.models import StudentGradebook, StudentGradebookHistory
@@ -298,6 +297,8 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
     def test_course_passed(self):
         course = self.setup_course_with_grading()
         course2 = self.setup_course_with_grading()
+        CourseEnrollmentFactory.create(user=self.user, course_id=course.id)
+        CourseEnrollmentFactory.create(user=self.user, course_id=course2.id)
 
         module = self.get_module_for_user(self.user, course, course.homework_assignment)
         grade_dict = {'value': 0.5, 'max_value': 1, 'user_id': self.user.id}
@@ -321,3 +322,11 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
 
         history = StudentGradebookHistory.objects.filter(is_passed=True)
         self.assertEqual(len(history), 1)
+
+        passed_count = StudentGradebook.get_passed_users_gradebook(course2.id).count()
+        self.assertEqual(passed_count, 1)
+
+        passed_count = StudentGradebook.get_passed_users_gradebook(
+            course2.id, exclude_users=[self.user.id]
+        ).count()
+        self.assertEqual(passed_count, 0)
