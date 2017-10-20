@@ -207,6 +207,7 @@ class StudentGradebook(models.Model):
         """
         Returns count of users those who completed given course.
         """
+        exclude_users = exclude_users or []
         grade_complete_match_range = getattr(settings, 'GRADEBOOK_GRADE_COMPLETE_PROFORMA_MATCH_RANGE', 0.01)
         queryset = cls.objects.filter(
             course_id__exact=course_key,
@@ -228,13 +229,14 @@ class StudentGradebook(models.Model):
         """
         Return users gradebook who passed given course.
         """
+        exclude_users = exclude_users or []
         queryset = StudentGradebook.objects.select_related('user').filter(
             course_id__exact=course_key,
             user__is_active=True,
             user__courseenrollment__is_active=True,
             user__courseenrollment__course_id__exact=course_key,
             is_passed=True
-        ).exclude(id__in=exclude_users)
+        ).exclude(user__id__in=exclude_users)
         if org_ids:
             queryset = queryset.filter(user__organizations__in=org_ids)
         if group_ids:
