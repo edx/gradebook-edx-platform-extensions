@@ -164,20 +164,28 @@ class StudentGradebook(models.Model):
         return data
 
     @classmethod
-    def course_grade_avg(cls, course_key, exclude_users=None):
+    def course_grade_avg(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
         """
         Returns course grade average
         """
         course_avg = 0.0
         exclude_users = exclude_users or []
-        total_user_count = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users).count()
+        total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users)
+        if org_ids:
+            total_users_qs = total_users_qs.filter(organizations__in=org_ids)
+        if group_ids:
+            total_users_qs = total_users_qs.filter(groups__in=group_ids).distinct()
+        total_user_count = total_users_qs.count()
 
         if total_user_count:
             # Generate the base data set we're going to work with
             queryset = StudentGradebook.objects.select_related('user')\
                 .filter(course_id__exact=course_key, user__is_active=True, user__courseenrollment__is_active=True,
                         user__courseenrollment__course_id__exact=course_key).exclude(user__id__in=exclude_users)
-
+            if org_ids:
+                queryset = queryset.filter(user__organizations__in=org_ids)
+            if group_ids:
+                queryset = queryset.filter(user__groups__in=group_ids)
             aggregates = queryset.aggregate(Avg('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
 
