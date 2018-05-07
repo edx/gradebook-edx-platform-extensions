@@ -7,7 +7,7 @@ from optparse import make_option
 
 from django.core.management import BaseCommand
 
-from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
+from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
 from student.models import CourseEnrollment
 from xmodule.modulestore.django import modulestore
 from opaque_keys.edx.keys import CourseKey

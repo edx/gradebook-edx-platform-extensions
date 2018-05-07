@@ -6,7 +6,7 @@ import logging
 
 from xmodule.modulestore import EdxJSONEncoder
 from xmodule.modulestore.django import modulestore
-from lms.djangoapps.grades.new.course_grade import CourseGradeFactory
+from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
 from courseware.courses import get_course
 from edx_solutions_api_integration.utils import (
     invalid_user_data_cache,
@@ -26,7 +26,7 @@ def generate_user_gradebook(course_key, user):
         course_grade = CourseGradeFactory().create(user, course_descriptor)
         grade_summary = course_grade.summary
         is_passed = course_grade.passed
-        progress_summary = make_courseware_summary(course_grade.chapter_grades)
+        progress_summary = make_courseware_summary(course_grade)
         grading_policy = course_descriptor.grading_policy
         grade = grade_summary['percent']
         proforma_grade = calculate_proforma_grade(course_grade, grading_policy)
@@ -68,12 +68,12 @@ def get_json_data(obj):
     return json_data
 
 
-def make_courseware_summary(chapter_grades):
+def make_courseware_summary(course_grade):
     """
-    Makes courseware summary dict from chapter grades.
+    Makes courseware summary dict from course grade.
     """
     courseware_summary = []
-    for chapter in chapter_grades:
+    for chapter in course_grade.chapter_grades.itervalues():
         sub_sections = []
         for sub_section in chapter['sections']:
             sub_sections.append({
@@ -87,13 +87,13 @@ def make_courseware_summary(chapter_grades):
                     sub_section.all_total.earned,
                     sub_section.all_total.possible,
                     sub_section.all_total.graded,
-                    sub_section.all_total.attempted,
+                    sub_section.all_total.first_attempted,
                 ],
                 'graded_total': [
                     sub_section.graded_total.earned,
                     sub_section.graded_total.possible,
                     sub_section.graded_total.graded,
-                    sub_section.graded_total.attempted,
+                    sub_section.graded_total.first_attempted,
                 ],
             })
 
@@ -143,7 +143,7 @@ def calculate_proforma_grade(course_grade, grading_policy):
             # compute proforma grade for each grade subsection
             for __, subsection_grade in categorized_subsections.iteritems():
                 graded_item = subsection_grade.graded_total
-                if graded_item.attempted:
+                if graded_item.first_attempted:
                     normalized_item_score = graded_item.earned / graded_item.possible
                     total_item_score += normalized_item_score
                     items_considered += 1

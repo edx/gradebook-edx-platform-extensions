@@ -6,6 +6,7 @@ Run these tests @ Devstack:
 from mock import MagicMock, patch
 import json
 from datetime import datetime
+from freezegun import freeze_time
 
 from django.utils.timezone import UTC
 from django.conf import settings
@@ -60,7 +61,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
             "detail": "Midterm Exam = 50.00% of a possible 50.00%",
         }
 
-    def _get_homework_summary(self, course, attempted=False):
+    def _get_homework_summary(self, course, attempted=None):
         return {
             u'url_name': u'Sequence_2',
             u'display_name': u'Sequence 2',
@@ -76,7 +77,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
             u'graded_total': [0.5, 1.0, True, attempted]
         }
 
-    def _get_midterm_summary(self, course, attempted=False):
+    def _get_midterm_summary(self, course, attempted=None):
         return {
             u'url_name': u'Sequence_3',
             u'display_name': u'Sequence 3',
@@ -96,16 +97,18 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         """
         Asserts user has a valid grade book
         """
+        time_first_attempted = datetime.now(UTC()).isoformat()
         module = self.get_module_for_user(self.user, course, course.homework_assignment)
         grade_dict = {'value': 0.5, 'max_value': 1, 'user_id': self.user.id}
-        module.system.publish(module, 'grade', grade_dict)
+        with freeze_time(time_first_attempted):
+            module.system.publish(module, 'grade', grade_dict)
 
         gradebook = StudentGradebook.objects.get(user=self.user, course_id=course.id)
         self.assertEqual(gradebook.grade, 0.25)
         self.assertEqual(gradebook.proforma_grade, 0.5)
 
         self.assertIn(
-            json.dumps(self._get_homework_summary(course, attempted=True)),
+            json.dumps(self._get_homework_summary(course, attempted=time_first_attempted)),
             gradebook.progress_summary
         )
         self.assertIn(json.dumps(self._get_homework_grade_summary()), gradebook.grade_summary)
@@ -113,13 +116,14 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
 
         module = self.get_module_for_user(self.user, course, course.midterm_assignment)
         grade_dict = {'value': 1, 'max_value': 1, 'user_id': self.user.id}
-        module.system.publish(module, 'grade', grade_dict)
+        with freeze_time(time_first_attempted):
+            module.system.publish(module, 'grade', grade_dict)
 
         gradebook = StudentGradebook.objects.get(user=self.user, course_id=course.id)
         self.assertEqual(gradebook.grade, 0.75)
         self.assertEqual(gradebook.proforma_grade, 0.75)
         self.assertIn(
-            json.dumps(self._get_midterm_summary(course, attempted=True)),
+            json.dumps(self._get_midterm_summary(course, attempted=time_first_attempted)),
             gradebook.progress_summary
         )
         self.assertIn(json.dumps(self._get_midterm_grade_summary()), gradebook.grade_summary)
