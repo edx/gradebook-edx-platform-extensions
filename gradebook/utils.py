@@ -47,7 +47,9 @@ def generate_user_gradebook(course_key, user):
         }
     )
 
-    if gradebook_entry.grade != grade or gradebook_entry.is_passed != is_passed:
+    if gradebook_entry.grade != grade or \
+            gradebook_entry.proforma_grade != proforma_grade or \
+            gradebook_entry.is_passed != is_passed:
         gradebook_entry.grade = grade
         gradebook_entry.proforma_grade = proforma_grade
         gradebook_entry.progress_summary = progress_summary
