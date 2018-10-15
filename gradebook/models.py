@@ -203,6 +203,8 @@ class StudentGradebook(models.Model):
                 queryset = queryset.filter(user__organizations__in=org_ids)
             if group_ids:
                 queryset = queryset.filter(user__groups__in=group_ids)
+            if cohort_user_ids:
+                queryset = queryset.filter(user_id__in=cohort_user_ids)
             aggregates = queryset.aggregate(Avg('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
 
@@ -228,7 +230,14 @@ class StudentGradebook(models.Model):
             return user_grade
 
     @classmethod
-    def get_num_users_completed(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
+    def get_num_users_completed(
+            cls,
+            course_key,
+            exclude_users=None,
+            org_ids=None,
+            group_ids=None,
+            cohort_user_ids=None,
+    ):
         """
         Returns count of users those who completed given course.
         """
@@ -246,11 +255,20 @@ class StudentGradebook(models.Model):
             queryset = queryset.filter(user__organizations__in=org_ids)
         if group_ids:
             queryset = queryset.filter(user__groups__in=group_ids)
+        if cohort_user_ids:
+            queryset = queryset.filter(user_id__in=cohort_user_ids)
 
         return queryset.distinct().count()
 
     @classmethod
-    def get_passed_users_gradebook(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
+    def get_passed_users_gradebook(
+            cls,
+            course_key,
+            exclude_users=None,
+            org_ids=None,
+            group_ids=None,
+            cohort_user_ids=None,
+    ):
         """
         Return users gradebook who passed given course.
         """
@@ -266,6 +284,8 @@ class StudentGradebook(models.Model):
             queryset = queryset.filter(user__organizations__in=org_ids)
         if group_ids:
             queryset = queryset.filter(user__groups__in=group_ids)
+        if cohort_user_ids:
+            queryset = queryset.filter(user_id__in=cohort_user_ids)
 
         return queryset
 
