@@ -132,13 +132,14 @@ class StudentGradebook(models.Model):
                         user_id,
                         exclude_users=exclude_users,
                         group_ids=group_ids,
+                        cohort_user_ids=cohort_user_ids,
                     )
                     data.update(result)
 
         return data
 
     @classmethod
-    def get_user_position(cls, course_key, user_id, exclude_users=None, group_ids=None):
+    def get_user_position(cls, course_key, user_id, exclude_users=None, group_ids=None, cohort_user_ids=None):
         """
         Helper method to return the user's position in the leaderboard for Proficiency
         """
@@ -167,6 +168,9 @@ class StudentGradebook(models.Model):
 
         if group_ids:
             queryset = queryset.filter(user__groups__in=group_ids).distinct()
+
+        if cohort_user_ids:
+            queryset = queryset.filter(user__id__in=cohort_user_ids)
 
         users_above = queryset.filter(
             Q(grade__gt=user_grade) |
