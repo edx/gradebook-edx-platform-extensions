@@ -90,7 +90,7 @@ class StudentGradebook(models.Model):
 
         if total_user_count:
             # Generate the base data set we're going to work with
-            queryset = cls._build_queryset(course_key, **kwargs)
+            queryset = cls._build_queryset(course_key, exclude_users=kwargs.get('exclude_users', []))
 
             aggregates = queryset.aggregate(Avg('grade'), Max('grade'), Min('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
@@ -107,6 +107,9 @@ class StudentGradebook(models.Model):
                     data['course_max'] = aggregates['grade__max']
                     data['course_min'] = aggregates['grade__min']
                     data['course_count'] = gradebook_user_count
+
+                if kwargs.get('group_ids'):
+                    queryset = queryset.filter(user__groups__in=kwargs.get('group_ids')).distinct()
 
                 # Construct the leaderboard as a queryset
                 data['queryset'] = queryset.values(
@@ -178,7 +181,7 @@ class StudentGradebook(models.Model):
             queryset = queryset.filter(user__groups__in=kwargs.get('group_ids')).distinct()
 
         if kwargs.get('org_ids'):
-            queryset = queryset.filter(organizations__in=kwargs.get('org_ids'))
+            queryset = queryset.filter(user__organizations__in=kwargs.get('org_ids'))
 
         if kwargs.get('cohort_user_ids'):
             queryset = queryset.filter(user_id__in=kwargs.get('cohort_user_ids'))
@@ -213,9 +216,13 @@ class StudentGradebook(models.Model):
     def course_grade_avg(cls, course_key, **kwargs):
         """
         Returns course grade average
+        :param kwargs:
+            - `exclude_users`
+            - `group_ids`
+            - `org_ids`
         """
         course_avg = 0.0
-        total_user_count = cls._build_enrollment_queryset(course_key, **kwargs).count()
+        total_user_count = cls._build_enrollment_queryset(course_key, exclude_users=kwargs.get('exclude_users')).count()
 
         if total_user_count:
             # Generate the base data set we're going to work with
