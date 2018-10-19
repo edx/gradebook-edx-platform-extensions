@@ -40,7 +40,15 @@ class StudentGradebook(models.Model):
         unique_together = (('user', 'course_id'),)
 
     @classmethod
-    def generate_leaderboard(cls, course_key, user_id=None, group_ids=None, count=3, exclude_users=None):
+    def generate_leaderboard(
+            cls,
+            course_key,
+            user_id=None,
+            group_ids=None,
+            count=3,
+            exclude_users=None,
+            cohort_user_ids=None,
+    ):
         """
         Assembles a data set representing the Top N users, by grade, for a given course.
         Optionally provide a user_id to include user-specific info.  For example, you
@@ -74,13 +82,20 @@ class StudentGradebook(models.Model):
         data['enrollment_count'] = 0
         data['queryset'] = []
 
-        total_user_count = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users).count()
+        total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users)
+        if cohort_user_ids:
+            total_users_qs = total_users_qs.filter(id__in=cohort_user_ids)
+        total_user_count = total_users_qs.count()
         data['enrollment_count'] = total_user_count
+
         if total_user_count:
             # Generate the base data set we're going to work with
             queryset = StudentGradebook.objects.select_related('user')\
                 .filter(course_id__exact=course_key, user__is_active=True, user__courseenrollment__is_active=True,
                         user__courseenrollment__course_id__exact=course_key).exclude(user__id__in=exclude_users)
+
+            if cohort_user_ids:
+                queryset = queryset.filter(user_id__in=cohort_user_ids)
 
             aggregates = queryset.aggregate(Avg('grade'), Max('grade'), Min('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
@@ -117,13 +132,14 @@ class StudentGradebook(models.Model):
                         user_id,
                         exclude_users=exclude_users,
                         group_ids=group_ids,
+                        cohort_user_ids=cohort_user_ids,
                     )
                     data.update(result)
 
         return data
 
     @classmethod
-    def get_user_position(cls, course_key, user_id, exclude_users=None, group_ids=None):
+    def get_user_position(cls, course_key, user_id, exclude_users=None, group_ids=None, cohort_user_ids=None):
         """
         Helper method to return the user's position in the leaderboard for Proficiency
         """
@@ -153,6 +169,9 @@ class StudentGradebook(models.Model):
         if group_ids:
             queryset = queryset.filter(user__groups__in=group_ids).distinct()
 
+        if cohort_user_ids:
+            queryset = queryset.filter(user__id__in=cohort_user_ids)
+
         users_above = queryset.filter(
             Q(grade__gt=user_grade) |
             Q(grade=user_grade, modified__lt=user_time_scored)
@@ -164,7 +183,7 @@ class StudentGradebook(models.Model):
         return data
 
     @classmethod
-    def course_grade_avg(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
+    def course_grade_avg(cls, course_key, exclude_users=None, org_ids=None, group_ids=None, cohort_user_ids=None):
         """
         Returns course grade average
         """
@@ -175,6 +194,8 @@ class StudentGradebook(models.Model):
             total_users_qs = total_users_qs.filter(organizations__in=org_ids)
         if group_ids:
             total_users_qs = total_users_qs.filter(groups__in=group_ids).distinct()
+        if cohort_user_ids:
+            total_users_qs = total_users_qs.filter(id__in=cohort_user_ids)
         total_user_count = total_users_qs.count()
 
         if total_user_count:
@@ -186,6 +207,8 @@ class StudentGradebook(models.Model):
                 queryset = queryset.filter(user__organizations__in=org_ids)
             if group_ids:
                 queryset = queryset.filter(user__groups__in=group_ids)
+            if cohort_user_ids:
+                queryset = queryset.filter(user_id__in=cohort_user_ids)
             aggregates = queryset.aggregate(Avg('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
 
@@ -211,7 +234,14 @@ class StudentGradebook(models.Model):
             return user_grade
 
     @classmethod
-    def get_num_users_completed(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
+    def get_num_users_completed(
+            cls,
+            course_key,
+            exclude_users=None,
+            org_ids=None,
+            group_ids=None,
+            cohort_user_ids=None,
+    ):
         """
         Returns count of users those who completed given course.
         """
@@ -229,11 +259,20 @@ class StudentGradebook(models.Model):
             queryset = queryset.filter(user__organizations__in=org_ids)
         if group_ids:
             queryset = queryset.filter(user__groups__in=group_ids)
+        if cohort_user_ids:
+            queryset = queryset.filter(user_id__in=cohort_user_ids)
 
         return queryset.distinct().count()
 
     @classmethod
-    def get_passed_users_gradebook(cls, course_key, exclude_users=None, org_ids=None, group_ids=None):
+    def get_passed_users_gradebook(
+            cls,
+            course_key,
+            exclude_users=None,
+            org_ids=None,
+            group_ids=None,
+            cohort_user_ids=None,
+    ):
         """
         Return users gradebook who passed given course.
         """
@@ -249,6 +288,8 @@ class StudentGradebook(models.Model):
             queryset = queryset.filter(user__organizations__in=org_ids)
         if group_ids:
             queryset = queryset.filter(user__groups__in=group_ids)
+        if cohort_user_ids:
+            queryset = queryset.filter(user_id__in=cohort_user_ids)
 
         return queryset
 
