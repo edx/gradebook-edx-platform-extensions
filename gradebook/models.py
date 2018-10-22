@@ -90,7 +90,11 @@ class StudentGradebook(models.Model):
 
         if total_user_count:
             # Generate the base data set we're going to work with
-            queryset = cls._build_queryset(course_key, exclude_users=kwargs.get('exclude_users', []))
+            queryset = cls._build_queryset(
+                course_key,
+                exclude_users=kwargs.get('exclude_users', []),
+                cohort_user_ids=kwargs.get('cohort_user_ids', []),
+            )
 
             aggregates = queryset.aggregate(Avg('grade'), Max('grade'), Min('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
@@ -222,7 +226,11 @@ class StudentGradebook(models.Model):
             - `org_ids`
         """
         course_avg = 0.0
-        total_user_count = cls._build_enrollment_queryset(course_key, exclude_users=kwargs.get('exclude_users')).count()
+        total_user_count = cls._build_enrollment_queryset(
+            course_key,
+            exclude_users=kwargs.get('exclude_users'),
+            cohort_user_ids=kwargs.get('cohort_user_ids', []),
+        ).count()
 
         if total_user_count:
             # Generate the base data set we're going to work with
