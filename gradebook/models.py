@@ -177,7 +177,7 @@ class StudentGradebook(models.Model):
             user__courseenrollment__is_active=True,
             user__courseenrollment__course_id__exact=course_key,
         ).exclude(
-            user__in=kwargs.get('exclude_users', [])
+            user__in=kwargs.get('exclude_users') or []
         )
 
         if kwargs.get('group_ids'):
@@ -202,7 +202,7 @@ class StudentGradebook(models.Model):
             - `cohort_user_ids`
         """
         queryset = CourseEnrollment.objects.users_enrolled_in(course_key)\
-            .exclude(id__in=kwargs.get('exclude_users', []))
+            .exclude(id__in=kwargs.get('exclude_users') or [])
 
         if kwargs.get('group_ids'):
             queryset = queryset.filter(groups__in=kwargs.get('group_ids')).distinct()
