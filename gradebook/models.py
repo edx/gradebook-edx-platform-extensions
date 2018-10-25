@@ -51,7 +51,6 @@ class StudentGradebook(models.Model):
             - `count`
             - `exclude_users`
             - `group_ids`
-            - `org_ids`
             - `cohort_user_ids`
 
         :returns data = {
@@ -195,7 +194,7 @@ class StudentGradebook(models.Model):
     @classmethod
     def _build_enrollment_queryset(cls, course_key, **kwargs):
         """
-        Helper method to return filtered enrollment queryset.
+        Helper method to return filtered queryset of users enrolled in the course.
         :param kwargs:
             - `exclude_users`
             - `group_ids`
@@ -226,11 +225,7 @@ class StudentGradebook(models.Model):
             - `org_ids`
         """
         course_avg = 0.0
-        total_user_count = cls._build_enrollment_queryset(
-            course_key,
-            exclude_users=kwargs.get('exclude_users'),
-            cohort_user_ids=kwargs.get('cohort_user_ids', []),
-        ).count()
+        total_user_count = cls._build_enrollment_queryset(course_key, **kwargs).count()
 
         if total_user_count:
             # Generate the base data set we're going to work with
