@@ -40,22 +40,20 @@ class StudentGradebook(models.Model):
         unique_together = (('user', 'course_id'),)
 
     @classmethod
-    def generate_leaderboard(
-            cls,
-            course_key,
-            user_id=None,
-            group_ids=None,
-            count=3,
-            exclude_users=None,
-            cohort_user_ids=None,
-    ):
+    def generate_leaderboard(cls, course_key, **kwargs):
         """
         Assembles a data set representing the Top N users, by grade, for a given course.
         Optionally provide a user_id to include user-specific info.  For example, you
         may want to view the Top 5 users, but also need the data for the logged-in user
         who may actually be currently located in position #10.
 
-        data = {
+        :param kwargs:
+            - `count`
+            - `exclude_users`
+            - `group_ids`
+            - `cohort_user_ids`
+
+        :returns data = {
             'course_avg': 0.873,
             'queryset': [
                 {'id': 123, 'username': 'testuser1', 'title', 'Engineer', 'profile_image_uploaded_at': '2014-01-15 06:27:54', 'grade': 0.92, 'created': '2014-01-15 06:27:54'},
@@ -73,29 +71,29 @@ class StudentGradebook(models.Model):
         those users who currently lack gradebook entries.  We assume zero grades for these users because they
         have not yet submitted a response to a scored assessment which means no grade has been calculated.
         """
-        exclude_users = exclude_users or []
-        data = {}
-        data['course_avg'] = 0
-        data['course_max'] = 0
-        data['course_min'] = 0
-        data['course_count'] = 0
-        data['enrollment_count'] = 0
-        data['queryset'] = []
+        data = {
+            'course_avg': 0,
+            'course_max': 0,
+            'course_min': 0,
+            'course_count': 0,
+            'enrollment_count': 0,
+            'queryset': [],
+        }
 
-        total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users)
-        if cohort_user_ids:
-            total_users_qs = total_users_qs.filter(id__in=cohort_user_ids)
+        total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key)\
+            .exclude(id__in=kwargs.get('exclude_users', []))
+        if kwargs.get('cohort_user_ids'):
+            total_users_qs = total_users_qs.filter(id__in=kwargs.get('cohort_user_ids'))
         total_user_count = total_users_qs.count()
         data['enrollment_count'] = total_user_count
 
         if total_user_count:
             # Generate the base data set we're going to work with
-            queryset = StudentGradebook.objects.select_related('user')\
-                .filter(course_id__exact=course_key, user__is_active=True, user__courseenrollment__is_active=True,
-                        user__courseenrollment__course_id__exact=course_key).exclude(user__id__in=exclude_users)
-
-            if cohort_user_ids:
-                queryset = queryset.filter(user_id__in=cohort_user_ids)
+            queryset = cls._build_queryset(
+                course_key,
+                exclude_users=kwargs.get('exclude_users', []),
+                cohort_user_ids=kwargs.get('cohort_user_ids', []),
+            )
 
             aggregates = queryset.aggregate(Avg('grade'), Max('grade'), Min('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
@@ -113,8 +111,8 @@ class StudentGradebook(models.Model):
                     data['course_min'] = aggregates['grade__min']
                     data['course_count'] = gradebook_user_count
 
-                if group_ids:
-                    queryset = queryset.filter(user__groups__in=group_ids).distinct()
+                if kwargs.get('group_ids'):
+                    queryset = queryset.filter(user__groups__in=kwargs.get('group_ids')).distinct()
 
                 # Construct the leaderboard as a queryset
                 data['queryset'] = queryset.values(
@@ -123,58 +121,39 @@ class StudentGradebook(models.Model):
                     'user__profile__title',
                     'user__profile__profile_image_uploaded_at',
                     'grade',
-                    'modified')\
-                    .order_by('-grade', 'modified')[:count]
-                # If a user_id value was provided, we need to provide some additional user-specific data to the caller
-                if user_id:
-                    result = cls.get_user_position(
-                        course_key,
-                        user_id,
-                        exclude_users=exclude_users,
-                        group_ids=group_ids,
-                        cohort_user_ids=cohort_user_ids,
-                    )
-                    data.update(result)
+                    'modified'
+                ).order_by('-grade', 'modified')[:kwargs.get('count', 3)]
 
         return data
 
     @classmethod
-    def get_user_position(cls, course_key, user_id, exclude_users=None, group_ids=None, cohort_user_ids=None):
+    def get_user_position(cls, course_key, **kwargs):
         """
         Helper method to return the user's position in the leaderboard for Proficiency
+        :param kwargs:
+            - `user_id`
+            - `exclude_users`
+            - `group_ids`
+            - `org_ids`
+            - `cohort_user_ids`
         """
-        exclude_users = exclude_users or []
         data = {'user_position': 0, 'user_grade': 0}
         user_grade = 0
-        users_above = 0
         user_time_scored = timezone.now()
+
         try:
-            user_queryset = StudentGradebook.objects.get(course_id__exact=course_key, user__id=user_id)
-        except StudentGradebook.DoesNotExist:
+            user_queryset = cls.objects.get(course_id__exact=course_key, user__id=kwargs.get('user_id'))
+        except cls.DoesNotExist:
             user_queryset = None
 
         if user_queryset:
             user_grade = user_queryset.grade
             user_time_scored = user_queryset.created
 
-        queryset = StudentGradebook.objects.select_related('user').filter(
-            course_id__exact=course_key,
-            user__is_active=True,
-            user__courseenrollment__is_active=True,
-            user__courseenrollment__course_id__exact=course_key
-        ).exclude(
-            user__in=exclude_users
-        )
-
-        if group_ids:
-            queryset = queryset.filter(user__groups__in=group_ids).distinct()
-
-        if cohort_user_ids:
-            queryset = queryset.filter(user__id__in=cohort_user_ids)
+        queryset = cls._build_queryset(course_key, **kwargs)
 
         users_above = queryset.filter(
-            Q(grade__gt=user_grade) |
-            Q(grade=user_grade, modified__lt=user_time_scored)
+            Q(grade__gt=user_grade) | Q(grade=user_grade, modified__lt=user_time_scored),
         ).count()
 
         data['user_position'] = users_above + 1
@@ -183,32 +162,74 @@ class StudentGradebook(models.Model):
         return data
 
     @classmethod
-    def course_grade_avg(cls, course_key, exclude_users=None, org_ids=None, group_ids=None, cohort_user_ids=None):
+    def _build_queryset(cls, course_key, **kwargs):
+        """
+        Helper method to return filtered queryset.
+        :param kwargs:
+            - `exclude_users`
+            - `group_ids`
+            - `org_ids`
+            - `cohort_user_ids`
+        """
+        queryset = cls.objects.filter(
+            course_id__exact=course_key,
+            user__is_active=True,
+            user__courseenrollment__is_active=True,
+            user__courseenrollment__course_id__exact=course_key,
+        ).exclude(
+            user__in=kwargs.get('exclude_users') or []
+        )
+
+        if kwargs.get('group_ids'):
+            queryset = queryset.filter(user__groups__in=kwargs.get('group_ids')).distinct()
+
+        if kwargs.get('org_ids'):
+            queryset = queryset.filter(user__organizations__in=kwargs.get('org_ids'))
+
+        if kwargs.get('cohort_user_ids'):
+            queryset = queryset.filter(user_id__in=kwargs.get('cohort_user_ids'))
+
+        return queryset
+
+    @classmethod
+    def _build_enrollment_queryset(cls, course_key, **kwargs):
+        """
+        Helper method to return filtered queryset of users enrolled in the course.
+        :param kwargs:
+            - `exclude_users`
+            - `group_ids`
+            - `org_ids`
+            - `cohort_user_ids`
+        """
+        queryset = CourseEnrollment.objects.users_enrolled_in(course_key)\
+            .exclude(id__in=kwargs.get('exclude_users') or [])
+
+        if kwargs.get('group_ids'):
+            queryset = queryset.filter(groups__in=kwargs.get('group_ids')).distinct()
+
+        if kwargs.get('org_ids'):
+            queryset = queryset.filter(organizations__in=kwargs.get('org_ids'))
+
+        if kwargs.get('cohort_user_ids'):
+            queryset = queryset.filter(id__in=kwargs.get('cohort_user_ids'))
+
+        return queryset
+
+    @classmethod
+    def course_grade_avg(cls, course_key, **kwargs):
         """
         Returns course grade average
+        :param kwargs:
+            - `exclude_users`
+            - `group_ids`
+            - `org_ids`
         """
         course_avg = 0.0
-        exclude_users = exclude_users or []
-        total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key).exclude(id__in=exclude_users)
-        if org_ids:
-            total_users_qs = total_users_qs.filter(organizations__in=org_ids)
-        if group_ids:
-            total_users_qs = total_users_qs.filter(groups__in=group_ids).distinct()
-        if cohort_user_ids:
-            total_users_qs = total_users_qs.filter(id__in=cohort_user_ids)
-        total_user_count = total_users_qs.count()
+        total_user_count = cls._build_enrollment_queryset(course_key, **kwargs).count()
 
         if total_user_count:
             # Generate the base data set we're going to work with
-            queryset = StudentGradebook.objects.select_related('user')\
-                .filter(course_id__exact=course_key, user__is_active=True, user__courseenrollment__is_active=True,
-                        user__courseenrollment__course_id__exact=course_key).exclude(user__id__in=exclude_users)
-            if org_ids:
-                queryset = queryset.filter(user__organizations__in=org_ids)
-            if group_ids:
-                queryset = queryset.filter(user__groups__in=group_ids)
-            if cohort_user_ids:
-                queryset = queryset.filter(user_id__in=cohort_user_ids)
+            queryset = cls._build_queryset(course_key, **kwargs)
             aggregates = queryset.aggregate(Avg('grade'), Count('user'))
             gradebook_user_count = aggregates['user__count']
 
