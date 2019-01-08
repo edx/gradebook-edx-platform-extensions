@@ -16,7 +16,7 @@ from edx_notifications.lib.publisher import (
 )
 from edx_notifications.data import NotificationMessage
 from edx_solutions_api_integration.utils import (
-    get_aggregate_exclusion_user_ids,
+    get_aggregate_exclusion_user_ids, invalid_user_data_cache,
 )
 
 from gradebook.models import StudentGradebook, StudentGradebookHistory
@@ -77,6 +77,7 @@ def handle_studentgradebook_post_save_signal(sender, instance, **kwargs):
     """
     Handle the pre-save ORM event on CourseModuleCompletions
     """
+    invalid_user_data_cache('grade', instance.course_id, instance.user.id)
 
     if settings.FEATURES['ENABLE_NOTIFICATIONS']:
         # attach the rank of the user before the save is completed
