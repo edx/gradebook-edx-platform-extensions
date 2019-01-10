@@ -25,6 +25,8 @@ from gradebook.tasks import update_user_gradebook
 
 log = logging.getLogger(__name__)
 
+UPDATE_GRADEBOOK_DELAY = 3  # in seconds
+
 
 @receiver(PROBLEM_WEIGHTED_SCORE_CHANGED)
 def on_course_grade_changed(**kwargs):
@@ -33,7 +35,7 @@ def on_course_grade_changed(**kwargs):
     """
     user_id = kwargs.get('user_id')
     course_id = kwargs.get('course_id')
-    update_user_gradebook.delay(course_id, user_id)
+    update_user_gradebook.apply_async([course_id, user_id], countdown=UPDATE_GRADEBOOK_DELAY)
 
 
 @receiver(course_deleted)
