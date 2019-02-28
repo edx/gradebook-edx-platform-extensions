@@ -118,6 +118,8 @@ class StudentGradebook(models.Model):
                 data['queryset'] = queryset.values(
                     'user__id',
                     'user__username',
+                    'user__first_name',
+                    'user__last_name',
                     'user__profile__title',
                     'user__profile__profile_image_uploaded_at',
                     'grade',
