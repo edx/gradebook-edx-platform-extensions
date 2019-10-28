@@ -21,15 +21,15 @@ class Command(BaseCommand):
     """
     help = "Command to regrade users in a course"
 
-    option_list = BaseCommand.option_list + (
-        make_option(
+    def add_arguments(self, parser):
+        parser.add_argument(
             "-c",
             "--course_id",
             dest="course_id",
             help="course id to regrade",
             metavar="any/course/id"
         ),
-    )
+
 
     def handle(self, *args, **options):
 
