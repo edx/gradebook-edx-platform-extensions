@@ -15,7 +15,7 @@ from student.tests.factories import UserFactory, AdminFactory, CourseEnrollmentF
 from courseware.tests.factories import StaffFactory
 
 from gradebook.models import StudentGradebook, StudentGradebookHistory
-from util.signals import course_deleted
+from xmodule.modulestore.django import SignalHandler
 
 from edx_notifications.lib.consumer import get_notifications_count_for_user
 from edx_notifications.startup import initialize as initialize_notifications
@@ -288,7 +288,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         course = self.setup_course_with_grading()
         self._assert_valid_gradebook_on_course(course)
 
-        course_deleted.send(sender=None, course_key=course.id)
+        SignalHandler.course_deleted.send(sender=None, course_key=course.id)
         with self.assertRaises(StudentGradebook.DoesNotExist):
             gradebook = StudentGradebook.objects.get(user=self.user, course_id=course.id)
 

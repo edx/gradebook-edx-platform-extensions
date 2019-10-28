@@ -6,7 +6,7 @@ import logging
 
 from xmodule.modulestore import EdxJSONEncoder
 from xmodule.modulestore.django import modulestore
-from lms.djangoapps.grades.new.course_grade_factory import CourseGradeFactory
+from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from courseware.courses import get_course
 from gradebook.models import StudentGradebook
 
