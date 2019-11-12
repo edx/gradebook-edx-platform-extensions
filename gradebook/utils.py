@@ -20,7 +20,7 @@ def generate_user_gradebook(course_key, user):
     """
     with modulestore().bulk_operations(course_key):
         course_descriptor = get_course(course_key, depth=None)
-        course_grade = CourseGradeFactory().create(user, course_descriptor)
+        course_grade = CourseGradeFactory().read(user, course_descriptor)
         grade_summary = course_grade.summary
         is_passed = course_grade.passed
         progress_summary = make_courseware_summary(course_grade)
