@@ -46,7 +46,7 @@ class Command(BaseCommand):
             for user in users:
                 is_passed = False
                 try:
-                    course_grade = CourseGradeFactory().create(user, course)
+                    course_grade = CourseGradeFactory().read(user, course)
                     is_passed = course_grade.passed
                     StudentGradebook.objects.filter(user=user, course_id=course_key).update(is_passed=is_passed)
                 except Exception as ex:  # pylint: disable=broad-except
