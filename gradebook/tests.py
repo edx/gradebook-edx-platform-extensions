@@ -3,13 +3,13 @@
 Run these tests @ Devstack:
     paver test_system -s lms --test_id=lms/djangoapps/gradebook/tests.py
 """
-from mock import MagicMock, patch
 import json
 from datetime import datetime
-from freezegun import freeze_time
 
-from django.utils.timezone import UTC
 from django.conf import settings
+from freezegun import freeze_time
+from mock import MagicMock, patch
+from pytz import utc
 
 from student.tests.factories import UserFactory, AdminFactory, CourseEnrollmentFactory
 from courseware.tests.factories import StaffFactory
@@ -33,6 +33,7 @@ from xmodule.modulestore.tests.django_utils import (
 class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreTestCase):
     """ Test suite for Student Gradebook """
 
+    ENABLED_SIGNALS = ['course_deleted']
     MODULESTORE = TEST_DATA_SPLIT_MODULESTORE
 
     def setUp(self):
@@ -97,7 +98,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         """
         Asserts user has a valid grade book
         """
-        time_first_attempted = datetime.now(UTC()).isoformat()
+        time_first_attempted = datetime.now(utc).isoformat()
         module = self.get_module_for_user(self.user, course, course.homework_assignment)
         grade_dict = {'value': 0.5, 'max_value': 1, 'user_id': self.user.id}
         with freeze_time(time_first_attempted):
@@ -172,8 +173,8 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
     @make_non_atomic
     def test_open_course(self):
         course = self.setup_course_with_grading(
-            start=datetime(2010, 1, 1, tzinfo=UTC()),
-            end=datetime(3000, 1, 1, tzinfo=UTC()),
+            start=datetime(2010, 1, 1, tzinfo=utc),
+            end=datetime(3000, 1, 1, tzinfo=utc),
         )
         self._assert_valid_gradebook_on_course(course)
 
@@ -185,8 +186,8 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
     @make_non_atomic
     def test_not_yet_started_course(self):
         course = self.setup_course_with_grading(
-            start=datetime(3000, 1, 1, tzinfo=UTC()),
-            end=datetime(3000, 1, 1, tzinfo=UTC()),
+            start=datetime(3000, 1, 1, tzinfo=utc),
+            end=datetime(3000, 1, 1, tzinfo=utc),
         )
         self._assert_valid_gradebook_on_course(course)
 
@@ -197,8 +198,8 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
     @make_non_atomic
     def test_closed_course_student(self):
         course = self.setup_course_with_grading(
-            start=datetime(2010, 1, 1, tzinfo=UTC()),
-            end=datetime(2011, 1, 1, tzinfo=UTC()),
+            start=datetime(2010, 1, 1, tzinfo=utc),
+            end=datetime(2011, 1, 1, tzinfo=utc),
         )
         module = self.get_module_for_user(self.user, course, course.homework_assignment)
         grade_dict = {'value': 0.5, 'max_value': 1, 'user_id': self.user.id}
@@ -224,8 +225,8 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         """
         self.user = AdminFactory()
         course = self.setup_course_with_grading(
-            start=datetime(2010, 1, 1, tzinfo=UTC()),
-            end=datetime(2011, 1, 1, tzinfo=UTC()),
+            start=datetime(2010, 1, 1, tzinfo=utc),
+            end=datetime(2011, 1, 1, tzinfo=utc),
         )
         module = self.get_module_for_user(self.user, course, course.homework_assignment)
         grade_dict = {'value': 0.5, 'max_value': 1, 'user_id': self.user.id}
@@ -250,8 +251,8 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         Users marked as course staff should be able to submit grade events to a closed course
         """
         course = self.setup_course_with_grading(
-            start=datetime(2010, 1, 1, tzinfo=UTC()),
-            end=datetime(2011, 1, 1, tzinfo=UTC()),
+            start=datetime(2010, 1, 1, tzinfo=utc),
+            end=datetime(2011, 1, 1, tzinfo=utc),
         )
         self.user = StaffFactory(course_key=course.id)
         module = self.get_module_for_user(self.user, course, course.homework_assignment)
