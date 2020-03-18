@@ -9,6 +9,7 @@ from django.db.models import Avg, Max, Min, Count, F, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.utils.translation import ugettext_lazy as _
+from django.core.cache import cache
 from model_utils.fields import AutoCreatedField, AutoLastModifiedField
 
 from model_utils.models import TimeStampedModel
@@ -226,6 +227,13 @@ class StudentGradebook(models.Model):
             - `group_ids`
             - `org_ids`
         """
+        cache_key = 'course_grade_avg_{}'.format(course_key)
+        cache_ttl = 60 * 30 # 30 minutes
+
+        course_avg = cache.get(cache_key)
+        if course_avg is not None:
+            return course_avg
+
         course_avg = 0.0
         total_user_count = cls._build_enrollment_queryset(course_key, **kwargs).count()
 
@@ -242,6 +250,9 @@ class StudentGradebook(models.Model):
                     # Take into account any ungraded students (assumes zeros for grades...)
                     course_avg = course_avg / total_user_count * gradebook_user_count
                     course_avg = float("{0:.3f}".format(course_avg))
+
+        # it looks fine to cache this aggregated result for some time
+        cache.set(cache_key, course_avg, cache_ttl)
         return course_avg
 
     @classmethod
