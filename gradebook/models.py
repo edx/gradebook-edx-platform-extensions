@@ -14,7 +14,7 @@ from model_utils.fields import AutoCreatedField, AutoLastModifiedField
 from model_utils.models import TimeStampedModel
 from student.models import CourseEnrollment
 from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
-
+from edx_solutions_api_integration.courses.utils import get_course_enrollment_count
 
 class StudentGradebook(models.Model):
     """
@@ -80,11 +80,16 @@ class StudentGradebook(models.Model):
             'queryset': [],
         }
 
-        total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key)\
-            .exclude(id__in=kwargs.get('exclude_users', []))
-        if kwargs.get('cohort_user_ids'):
-            total_users_qs = total_users_qs.filter(id__in=kwargs.get('cohort_user_ids'))
-        total_user_count = total_users_qs.count()
+
+        if not kwargs.get('cohort_user_ids'):
+            total_user_count = get_course_enrollment_count(course_id=course_key.to_deprecated_string())
+        else:
+            total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key)\
+                .exclude(id__in=kwargs.get('exclude_users', []))
+            if kwargs.get('cohort_user_ids'):
+                total_users_qs = total_users_qs.filter(id__in=kwargs.get('cohort_user_ids'))
+
+            total_user_count = total_users_qs.count()
         data['enrollment_count'] = total_user_count
 
         if total_user_count:
