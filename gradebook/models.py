@@ -14,7 +14,7 @@ from model_utils.fields import AutoCreatedField, AutoLastModifiedField
 from model_utils.models import TimeStampedModel
 from student.models import CourseEnrollment
 from openedx.core.djangoapps.xmodule_django.models import CourseKeyField
-
+from edx_solutions_api_integration.courses.utils import get_course_enrollment_count
 
 class StudentGradebook(models.Model):
     """
@@ -40,7 +40,7 @@ class StudentGradebook(models.Model):
         unique_together = (('user', 'course_id'),)
 
     @classmethod
-    def generate_leaderboard(cls, course_key, **kwargs):
+    def generate_leaderboard(cls, course_key, exclude_aggregate_scores=False, **kwargs):
         """
         Assembles a data set representing the Top N users, by grade, for a given course.
         Optionally provide a user_id to include user-specific info.  For example, you
@@ -80,11 +80,16 @@ class StudentGradebook(models.Model):
             'queryset': [],
         }
 
-        total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key)\
-            .exclude(id__in=kwargs.get('exclude_users', []))
-        if kwargs.get('cohort_user_ids'):
-            total_users_qs = total_users_qs.filter(id__in=kwargs.get('cohort_user_ids'))
-        total_user_count = total_users_qs.count()
+
+        if not kwargs.get('cohort_user_ids'):
+            total_user_count = get_course_enrollment_count(course_id=course_key.to_deprecated_string())
+        else:
+            total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key)\
+                .exclude(id__in=kwargs.get('exclude_users', []))
+            if kwargs.get('cohort_user_ids'):
+                total_users_qs = total_users_qs.filter(id__in=kwargs.get('cohort_user_ids'))
+
+            total_user_count = total_users_qs.count()
         data['enrollment_count'] = total_user_count
 
         if total_user_count:
@@ -95,36 +100,38 @@ class StudentGradebook(models.Model):
                 cohort_user_ids=kwargs.get('cohort_user_ids', []),
             )
 
-            aggregates = queryset.aggregate(Avg('grade'), Max('grade'), Min('grade'), Count('user'))
-            gradebook_user_count = aggregates['user__count']
+            # only include aggregates if required
+            if not exclude_aggregate_scores:
+                aggregates = queryset.aggregate(Avg('grade'), Max('grade'), Min('grade'), Count('user'))
+                gradebook_user_count = aggregates['user__count']
 
-            if gradebook_user_count:
-                # Calculate the class average
-                course_avg = aggregates['grade__avg']
-                if course_avg is not None:
-                    # Take into account any ungraded students (assumes zeros for grades...)
-                    course_avg = course_avg / total_user_count * gradebook_user_count
+                if gradebook_user_count:
+                    # Calculate the class average
+                    course_avg = aggregates['grade__avg']
+                    if course_avg is not None:
+                        # Take into account any ungraded students (assumes zeros for grades...)
+                        course_avg = course_avg / total_user_count * gradebook_user_count
 
-                    # Fill up the response container
-                    data['course_avg'] = float("{0:.3f}".format(course_avg))
-                    data['course_max'] = aggregates['grade__max']
-                    data['course_min'] = aggregates['grade__min']
-                    data['course_count'] = gradebook_user_count
+                        # Fill up the response container
+                        data['course_avg'] = float("{0:.3f}".format(course_avg))
+                        data['course_max'] = aggregates['grade__max']
+                        data['course_min'] = aggregates['grade__min']
+                        data['course_count'] = gradebook_user_count
 
-                if kwargs.get('group_ids'):
-                    queryset = queryset.filter(user__groups__in=kwargs.get('group_ids')).distinct()
+            if kwargs.get('group_ids'):
+                queryset = queryset.filter(user__groups__in=kwargs.get('group_ids')).distinct()
 
-                # Construct the leaderboard as a queryset
-                data['queryset'] = queryset.values(
-                    'user__id',
-                    'user__username',
-                    'user__first_name',
-                    'user__last_name',
-                    'user__profile__title',
-                    'user__profile__profile_image_uploaded_at',
-                    'grade',
-                    'modified'
-                ).order_by('-grade', 'modified')[:kwargs.get('count', 3)]
+            # Construct the leaderboard as a queryset
+            data['queryset'] = queryset.values(
+                'user__id',
+                'user__username',
+                'user__first_name',
+                'user__last_name',
+                'user__profile__title',
+                'user__profile__profile_image_uploaded_at',
+                'grade',
+                'modified'
+            ).order_by('-grade', 'modified')[:kwargs.get('count', 3)]
 
         return data
 
