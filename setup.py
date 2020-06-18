@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='gradebook-edx-platform-extensions',
-    version='1.1.15',
+    version='2.0.0',
     description='User grade management extension for edX platform',
     long_description=open('README.rst').read(),
     author='edX',
@@ -12,6 +12,6 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        "django>=1.8",
+        "Django>=1.11,<1.12",
     ],
 )
