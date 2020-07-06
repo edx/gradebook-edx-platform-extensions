@@ -123,7 +123,7 @@ class StudentGradebook(models.Model):
                 queryset = queryset.filter(user__groups__in=kwargs.get('group_ids')).distinct()
 
             # Construct the leaderboard as a queryset
-            data['queryset'] = queryset.values(
+            data['queryset'] = queryset.filter(grade__gt=0).values(
                 'user__id',
                 'user__username',
                 'user__first_name',
