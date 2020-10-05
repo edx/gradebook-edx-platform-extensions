@@ -7,11 +7,11 @@ from optparse import make_option
 
 from django.core.management import BaseCommand
 
+from gradebook.models import StudentGradebook
 from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
+from opaque_keys.edx.keys import CourseKey
 from student.models import CourseEnrollment
 from xmodule.modulestore.django import modulestore
-from opaque_keys.edx.keys import CourseKey
-from gradebook.models import StudentGradebook
 
 log = logging.getLogger(__name__)
 

@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 
-from setuptools import setup, find_packages
+from setuptools import find_packages, setup
 
 setup(
     name='gradebook-edx-platform-extensions',
-    version='2.0.2',
+    version='3.0.0',
     description='User grade management extension for edX platform',
     long_description=open('README.rst').read(),
     author='edX',
@@ -12,6 +12,6 @@ setup(
     packages=find_packages(),
     include_package_data=True,
     install_requires=[
-        "Django>=1.11,<1.12",
+        "Django>=2.2,<2.3",
     ],
 )
