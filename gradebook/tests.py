@@ -7,27 +7,21 @@ import json
 from datetime import datetime
 
 from django.conf import settings
-from freezegun import freeze_time
-from mock import MagicMock, patch
 from pytz import utc
 
-from student.tests.factories import UserFactory, AdminFactory, CourseEnrollmentFactory
 from courseware.tests.factories import StaffFactory
-
-from gradebook.models import StudentGradebook, StudentGradebookHistory
-from xmodule.modulestore.django import SignalHandler
-
 from edx_notifications.lib.consumer import get_notifications_count_for_user
 from edx_notifications.startup import initialize as initialize_notifications
 from edx_solutions_api_integration.test_utils import (
-    CourseGradingMixin,
-    SignalDisconnectTestMixin,
-    make_non_atomic,
-)
+    CourseGradingMixin, SignalDisconnectTestMixin, make_non_atomic)
+from freezegun import freeze_time
+from gradebook.models import StudentGradebook, StudentGradebookHistory
+from mock import MagicMock, patch
+from student.tests.factories import (AdminFactory, CourseEnrollmentFactory,
+                                     UserFactory)
+from xmodule.modulestore.django import SignalHandler
 from xmodule.modulestore.tests.django_utils import (
-    ModuleStoreTestCase,
-    TEST_DATA_SPLIT_MODULESTORE
-)
+    TEST_DATA_SPLIT_MODULESTORE, ModuleStoreTestCase)
 
 
 class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreTestCase):
@@ -37,7 +31,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
     MODULESTORE = TEST_DATA_SPLIT_MODULESTORE
 
     def setUp(self):
-        super(GradebookTests, self).setUp()
+        super().setUp()
         self.test_server_prefix = 'https://testserver'
         self.user = UserFactory()
         self.score = 0.75
@@ -64,34 +58,34 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
 
     def _get_homework_summary(self, course, attempted=None):
         return {
-            u'url_name': u'Sequence_2',
-            u'display_name': u'Sequence 2',
-            u'location': 'block-v1:{org}+{num}+{run}+type@sequential+block@Sequence_2'.format(
+            'url_name': 'Sequence_2',
+            'display_name': 'Sequence 2',
+            'location': 'block-v1:{org}+{num}+{run}+type@sequential+block@Sequence_2'.format(
                 org=course.org,
                 num=course.number,
                 run=course.id.run,
             ),
-            u'graded': True,
-            u'format': u'Homework',
-            u'due': None,
-            u'section_total': [0.5, 1.0, False, attempted],
-            u'graded_total': [0.5, 1.0, True, attempted]
+            'graded': True,
+            'format': 'Homework',
+            'due': None,
+            'section_total': [0.5, 1.0, False, attempted],
+            'graded_total': [0.5, 1.0, True, attempted]
         }
 
     def _get_midterm_summary(self, course, attempted=None):
         return {
-            u'url_name': u'Sequence_3',
-            u'display_name': u'Sequence 3',
-            u'location': 'block-v1:{org}+{num}+{run}+type@sequential+block@Sequence_3'.format(
+            'url_name': 'Sequence_3',
+            'display_name': 'Sequence 3',
+            'location': 'block-v1:{org}+{num}+{run}+type@sequential+block@Sequence_3'.format(
                 org=course.org,
                 num=course.number,
                 run=course.id.run,
             ),
-            u'graded': True,
-            u'format': u'Midterm Exam',
-            u'due': None,
-            u'section_total': [1.0, 1.0, False, attempted],
-            u'graded_total': [1.0, 1.0, True, attempted]
+            'graded': True,
+            'format': 'Midterm Exam',
+            'due': None,
+            'section_total': [1.0, 1.0, False, attempted],
+            'graded_total': [1.0, 1.0, True, attempted]
         }
 
     def _assert_valid_gradebook_on_course(self, course):
@@ -113,7 +107,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
             gradebook.progress_summary
         )
         self.assertIn(json.dumps(self._get_homework_grade_summary()), gradebook.grade_summary)
-        self.assertEquals(json.loads(gradebook.grading_policy), course.grading_policy)
+        self.assertEqual(json.loads(gradebook.grading_policy), course.grading_policy)
 
         module = self.get_module_for_user(self.user, course, course.midterm_assignment)
         grade_dict = {'value': 1, 'max_value': 1, 'user_id': self.user.id}
@@ -128,7 +122,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
             gradebook.progress_summary
         )
         self.assertIn(json.dumps(self._get_midterm_grade_summary()), gradebook.grade_summary)
-        self.assertEquals(json.loads(gradebook.grading_policy), course.grading_policy)
+        self.assertEqual(json.loads(gradebook.grading_policy), course.grading_policy)
 
         gradebook = StudentGradebook.objects.all()
         self.assertEqual(len(gradebook), 1)
@@ -278,7 +272,7 @@ class GradebookTests(SignalDisconnectTestMixin, CourseGradingMixin, ModuleStoreT
         grade_dict = {'value': 0.75, 'max_value': 1, 'user_id': user.id}
         with patch('gradebook.signals.update_user_gradebook.delay') as mock_task:
             module.system.publish(module, 'grade', grade_dict)
-            mock_task.assert_called_with(unicode(course.id), user.id)
+            mock_task.assert_called_with(str(course.id), user.id)
 
     @patch.dict(settings.FEATURES, {
         'ALLOW_STUDENT_STATE_UPDATES_ON_CLOSED_COURSE': False,

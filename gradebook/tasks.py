@@ -4,22 +4,21 @@ This module has implementation of celery tasks for learner gradebook use cases
 import json
 import logging
 
-from celery.task import task  # pylint: disable=import-error,no-name-in-module
-
-from gradebook.utils import generate_user_gradebook
 from django.contrib.auth.models import User
-from opaque_keys.edx.keys import CourseKey
 
+from celery.task import task  # pylint: disable=import-error,no-name-in-module
+from gradebook.utils import generate_user_gradebook
+from opaque_keys.edx.keys import CourseKey
 
 log = logging.getLogger('edx.celery.task')
 
 
-@task(name=u'lms.djangoapps.gradebook.tasks.update_user_gradebook')
+@task(name='lms.djangoapps.gradebook.tasks.update_user_gradebook')
 def update_user_gradebook(course_key, user_id):
     """
     Taks to recalculate user's gradebook entry
     """
-    if not isinstance(course_key, basestring):
+    if not isinstance(course_key, str):
         raise ValueError('course_key must be a string. {} is not acceptable.'.format(type(course_key)))
 
     course_key = CourseKey.from_string(course_key)
