@@ -4,7 +4,7 @@ Utils methods for gradebook app
 import json
 import logging
 
-from courseware.courses import get_course
+from lms.djangoapps.courseware.courses import get_course
 from gradebook.models import StudentGradebook
 from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from xmodule.modulestore import EdxJSONEncoder

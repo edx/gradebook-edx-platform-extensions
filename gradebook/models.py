@@ -83,7 +83,7 @@ class StudentGradebook(models.Model):
 
 
         if not kwargs.get('cohort_user_ids'):
-            total_user_count = get_course_enrollment_count(course_id=course_key.to_deprecated_string())
+            total_user_count = get_course_enrollment_count(course_id=str(course_key))
         else:
             total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key)\
                 .exclude(id__in=kwargs.get('exclude_users', []))
