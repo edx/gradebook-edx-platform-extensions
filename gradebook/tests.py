@@ -9,7 +9,7 @@ from datetime import datetime
 from django.conf import settings
 from pytz import utc
 
-from courseware.tests.factories import StaffFactory
+from lms.djangoapps.courseware.tests.factories import StaffFactory
 from edx_notifications.lib.consumer import get_notifications_count_for_user
 from edx_notifications.startup import initialize as initialize_notifications
 from edx_solutions_api_integration.test_utils import (
