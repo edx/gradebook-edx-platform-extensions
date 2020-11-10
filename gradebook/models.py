@@ -132,7 +132,7 @@ class StudentGradebook(models.Model):
                 'user__profile__profile_image_uploaded_at',
                 'grade',
                 'modified'
-            ).order_by('-grade', 'modified')[:kwargs.get('count', 3)]
+            ).order_by('-grade', 'modified')[:int(kwargs.get('count', 3))]
 
         return data
 
