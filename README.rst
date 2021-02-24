@@ -1,6 +1,9 @@
 gradebook-edx-platform-extensions
 ===================
 
+Notice: This repo will be archived in April 2021.
+#######
+
 gradebook-edx-platform-extensions (``gradebook``) is a Django application responsible for
 calculating and persisting user's grade and proforma grade for a course.
 Gradebook application computes user's grades in a course on ``score_changed`` signal of courseware.
