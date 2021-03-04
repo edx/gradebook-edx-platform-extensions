@@ -4,7 +4,7 @@ from setuptools import find_packages, setup
 
 setup(
     name='gradebook-edx-platform-extensions',
-    version='3.0.1',
+    version='3.0.0',
     description='User grade management extension for edX platform',
     long_description=open('README.rst').read(),
     author='edX',
