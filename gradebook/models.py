@@ -158,7 +158,7 @@ class StudentGradebook(models.Model):
 
         if user_queryset:
             user_grade = user_queryset.grade
-            user_time_scored = user_queryset.modified
+            user_time_scored = user_queryset.created
 
         queryset = cls._build_queryset(course_key, **kwargs)
 
