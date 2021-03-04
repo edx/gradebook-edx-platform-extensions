@@ -4,24 +4,19 @@ Signal handlers supporting various gradebook use cases
 import logging
 import sys
 
-from django.dispatch import receiver
 from django.conf import settings
 from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
 
-from lms.djangoapps.grades.signals.signals import PROBLEM_WEIGHTED_SCORE_CHANGED
-from xmodule.modulestore.django import SignalHandler
-from edx_notifications.lib.publisher import (
-    publish_notification_to_user,
-    get_notification_type
-)
 from edx_notifications.data import NotificationMessage
+from edx_notifications.lib.publisher import (get_notification_type,
+                                             publish_notification_to_user)
 from edx_solutions_api_integration.utils import (
-    get_aggregate_exclusion_user_ids, invalid_user_data_cache,
-)
-
+    get_aggregate_exclusion_user_ids, invalid_user_data_cache)
 from gradebook.models import StudentGradebook, StudentGradebookHistory
 from gradebook.tasks import update_user_gradebook
-
+from lms.djangoapps.grades.signals.signals import PROBLEM_WEIGHTED_SCORE_CHANGED
+from xmodule.modulestore.django import SignalHandler
 
 log = logging.getLogger(__name__)
 
@@ -93,12 +88,12 @@ def handle_studentgradebook_post_save_signal(sender, instance, **kwargs):
         # logic for Notification trigger is when a user enters into the Leaderboard
         if grade > 0.0:
             leaderboard_size = getattr(settings, 'LEADERBOARD_SIZE', 3)
-            presave_leaderboard_rank = instance.presave_leaderboard_rank if instance.presave_leaderboard_rank else sys.maxint
+            presave_leaderboard_rank = instance.presave_leaderboard_rank if instance.presave_leaderboard_rank else sys.maxsize
             if leaderboard_rank <= leaderboard_size and presave_leaderboard_rank > leaderboard_size:
                 try:
                     notification_msg = NotificationMessage(
-                        msg_type=get_notification_type(u'open-edx.lms.leaderboard.gradebook.rank-changed'),
-                        namespace=unicode(instance.course_id),
+                        msg_type=get_notification_type('open-edx.lms.leaderboard.gradebook.rank-changed'),
+                        namespace=str(instance.course_id),
                         payload={
                             '_schema_version': '1',
                             'rank': leaderboard_rank,
@@ -117,11 +112,11 @@ def handle_studentgradebook_post_save_signal(sender, instance, **kwargs):
                     # so we need to resolve these links at dispatch time
                     #
                     notification_msg.add_click_link_params({
-                        'course_id': unicode(instance.course_id),
+                        'course_id': str(instance.course_id),
                     })
 
                     publish_notification_to_user(int(instance.user.id), notification_msg)
-                except Exception, ex:
+                except Exception as ex:
                     # Notifications are never critical, so we don't want to disrupt any
                     # other logic processing. So log and continue.
                     log.exception(ex)

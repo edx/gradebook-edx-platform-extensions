@@ -1,20 +1,20 @@
 """
 Django database models supporting the gradebook app
 """
-from django.utils import timezone
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.db import models
-from django.db.models import Avg, Max, Min, Count, F, Q
+from django.db.models import Avg, Count, F, Max, Min, Q
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.utils import timezone
 from django.utils.translation import ugettext_lazy as _
-from model_utils.fields import AutoCreatedField, AutoLastModifiedField
 
-from model_utils.models import TimeStampedModel
-from student.models import CourseEnrollment
-from opaque_keys.edx.django.models import CourseKeyField
 from edx_solutions_api_integration.courses.utils import get_course_enrollment_count
+from model_utils.fields import AutoCreatedField, AutoLastModifiedField
+from model_utils.models import TimeStampedModel
+from opaque_keys.edx.django.models import CourseKeyField
+from student.models import CourseEnrollment
 
 
 class StudentGradebook(models.Model):
@@ -22,7 +22,7 @@ class StudentGradebook(models.Model):
     StudentGradebook is essentially a container used to cache calculated
     grades (see courseware.grades.grade), which can be an expensive operation.
     """
-    user = models.ForeignKey(User, db_index=True)
+    user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
     course_id = CourseKeyField(db_index=True, max_length=255, blank=True)
     grade = models.FloatField(db_index=True)
     proforma_grade = models.FloatField()
@@ -34,7 +34,7 @@ class StudentGradebook(models.Model):
     created = AutoCreatedField(_('created'), db_index=True)
     modified = AutoLastModifiedField(_('modified'), db_index=True)
 
-    class Meta(object):
+    class Meta:
         """
         Meta information for this Django model
         """
@@ -83,7 +83,7 @@ class StudentGradebook(models.Model):
 
 
         if not kwargs.get('cohort_user_ids'):
-            total_user_count = get_course_enrollment_count(course_id=course_key.to_deprecated_string())
+            total_user_count = get_course_enrollment_count(course_id=str(course_key))
         else:
             total_users_qs = CourseEnrollment.objects.users_enrolled_in(course_key)\
                 .exclude(id__in=kwargs.get('exclude_users', []))
@@ -114,7 +114,7 @@ class StudentGradebook(models.Model):
                         course_avg = course_avg / total_user_count * gradebook_user_count
 
                         # Fill up the response container
-                        data['course_avg'] = float("{0:.3f}".format(course_avg))
+                        data['course_avg'] = float("{:.3f}".format(course_avg))
                         data['course_max'] = aggregates['grade__max']
                         data['course_min'] = aggregates['grade__min']
                         data['course_count'] = gradebook_user_count
@@ -132,7 +132,7 @@ class StudentGradebook(models.Model):
                 'user__profile__profile_image_uploaded_at',
                 'grade',
                 'modified'
-            ).order_by('-grade', 'modified')[:kwargs.get('count', 3)]
+            ).order_by('-grade', 'modified')[:int(kwargs.get('count', 3))]
 
         return data
 
@@ -158,7 +158,7 @@ class StudentGradebook(models.Model):
 
         if user_queryset:
             user_grade = user_queryset.grade
-            user_time_scored = user_queryset.created
+            user_time_scored = user_queryset.modified
 
         queryset = cls._build_queryset(course_key, **kwargs)
 
@@ -249,7 +249,7 @@ class StudentGradebook(models.Model):
                 if course_avg is not None:
                     # Take into account any ungraded students (assumes zeros for grades...)
                     course_avg = course_avg / total_user_count * gradebook_user_count
-                    course_avg = float("{0:.3f}".format(course_avg))
+                    course_avg = float("{:.3f}".format(course_avg))
         return course_avg
 
     @classmethod
@@ -330,7 +330,7 @@ class StudentGradebookHistory(TimeStampedModel):
     A running audit trail for the StudentGradebook model.  Listens for
     post_save events and creates/stores copies of gradebook entries.
     """
-    user = models.ForeignKey(User, db_index=True)
+    user = models.ForeignKey(User, db_index=True, on_delete=models.CASCADE)
     course_id = CourseKeyField(db_index=True, max_length=255, blank=True)
     grade = models.FloatField()
     proforma_grade = models.FloatField()

@@ -4,12 +4,11 @@ Utils methods for gradebook app
 import json
 import logging
 
+from lms.djangoapps.courseware.courses import get_course
+from gradebook.models import StudentGradebook
+from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
 from xmodule.modulestore import EdxJSONEncoder
 from xmodule.modulestore.django import modulestore
-from lms.djangoapps.grades.course_grade_factory import CourseGradeFactory
-from courseware.courses import get_course
-from gradebook.models import StudentGradebook
-
 
 log = logging.getLogger(__name__)
 
@@ -71,11 +70,11 @@ def make_courseware_summary(course_grade):
     Makes courseware summary dict from course grade.
     """
     courseware_summary = []
-    for chapter in course_grade.chapter_grades.itervalues():
+    for chapter in course_grade.chapter_grades.values():
         sub_sections = []
         for sub_section in chapter['sections']:
             sub_sections.append({
-                'location': unicode(sub_section.location),
+                'location': str(sub_section.location),
                 'display_name': sub_section.display_name,
                 'url_name': sub_section.url_name,
                 'due': sub_section.due,
@@ -139,7 +138,7 @@ def calculate_proforma_grade(course_grade, grading_policy):
             total_item_score = 0.00
             items_considered = 0
             # compute proforma grade for each grade subsection
-            for __, subsection_grade in categorized_subsections.iteritems():
+            for __, subsection_grade in categorized_subsections.items():
                 graded_item = subsection_grade.graded_total
                 if graded_item.first_attempted:
                     normalized_item_score = graded_item.earned / graded_item.possible
